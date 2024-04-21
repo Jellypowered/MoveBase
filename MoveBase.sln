@@ -1,30 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30011.22
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoveBase", "MoveBase.csproj", "{854D4C2A-CBD0-4FF3-B8E8-0DA655889B8F}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{D1B3ACA6-F0CD-4CBE-8D1B-6E1DD6E46E71}"
-	ProjectSection(SolutionItems) = preProject
-		SolutionItems\Deploy.bat = SolutionItems\Deploy.bat
-		Directory.Build.targets = Directory.Build.targets
-	EndProjectSection
-EndProject
-Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "RimWorldWin64", "G:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64.exe", "{923566DE-2349-46F6-89D3-55199CF49AB0}"
-	ProjectSection(DebuggerProjectSystem) = preProject
-		PortSupplier = 00000000-0000-0000-0000-000000000000
-		Executable = G:\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64.exe
-		RemoteMachine = DESKTOP-WDHELIX
-		StartingDirectory = G:\SteamLibrary\steamapps\common\RimWorld
-		Environment = dnspy_unity_dbg2=--debugger-agent=transport=dt_socket,server=y,address=127.0.0.1:56000,suspend=y,no-hide-debugger	
-		LaunchingEngine = 00000000-0000-0000-0000-000000000000
-		UseLegacyDebugEngines = No
-		LaunchSQLEngine = No
-		AttachLaunchAction = No
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorldUtility", "..\RimWorldUtility\RimWorldUtility.csproj", "{5D54E978-4AEC-45E5-86EE-4E30216A445E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,18 +21,6 @@ Global
 		{854D4C2A-CBD0-4FF3-B8E8-0DA655889B8F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{854D4C2A-CBD0-4FF3-B8E8-0DA655889B8F}.Release|x64.ActiveCfg = Release|Any CPU
 		{854D4C2A-CBD0-4FF3-B8E8-0DA655889B8F}.Release|x64.Build.0 = Release|Any CPU
-		{923566DE-2349-46F6-89D3-55199CF49AB0}.Debug|Any CPU.ActiveCfg = Release|x64
-		{923566DE-2349-46F6-89D3-55199CF49AB0}.Debug|x64.ActiveCfg = Release|x64
-		{923566DE-2349-46F6-89D3-55199CF49AB0}.Release|Any CPU.ActiveCfg = Release|x64
-		{923566DE-2349-46F6-89D3-55199CF49AB0}.Release|x64.ActiveCfg = Release|x64
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Debug|x64.Build.0 = Debug|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Release|x64.ActiveCfg = Release|Any CPU
-		{5D54E978-4AEC-45E5-86EE-4E30216A445E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

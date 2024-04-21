@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RimWorld;
-using RimWorldUtility;
 using Verse;
 
 namespace MoveBase
@@ -52,14 +51,6 @@ namespace MoveBase
         public override void FinalizeInit()
         {
             base.FinalizeInit();
-
-            foreach (FeatureNews news in MoveBaseMod.Setting.FeatureNews)
-            {
-                if (!news.Received && news.ReleaseDate > MoveBaseMod.CreationTime)
-                {
-                    Find.LetterStack.ReceiveLetter(new FeatureUpdateLetter(news, _mod));
-                }
-            }
         }
     }
 }

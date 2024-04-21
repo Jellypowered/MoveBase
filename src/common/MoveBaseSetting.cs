@@ -1,5 +1,4 @@
-﻿using RimWorldUtility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +9,7 @@ namespace MoveBase
 {
     public class MoveBaseSetting : ModSettings
     {
-        public List<FeatureNews> FeatureNews = new List<FeatureNews>();
+        //public List<FeatureNews> FeatureNews = new List<FeatureNews>();
 
         public MoveBaseSetting()
         {

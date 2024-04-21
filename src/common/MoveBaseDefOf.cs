@@ -13,7 +13,7 @@ namespace MoveBase
     {
         public static DesignationDef MoveBase;
 
-        public static LetterDef NotooShabbyFeatureUpdate;
+        //public static LetterDef NotooShabbyFeatureUpdate;
 
         static MoveBaseDefOf()
         {
