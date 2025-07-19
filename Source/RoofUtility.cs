@@ -7,14 +7,18 @@ namespace MoveBase
 {
     public static class RoofUtility
     {
-        private static Dictionary<IntVec3, Building> _supportedRoof = new Dictionary<IntVec3, Building>();
+        private static Dictionary<IntVec3, Building> _supportedRoof =
+            new Dictionary<IntVec3, Building>();
 
         /// <summary>
         /// Check if roof is supported by buildings other than those in <paramref name="exceptions"/>.
         /// </summary>
         public static bool IsSupported(this IntVec3 roof, Map map, IEnumerable<Thing> exceptions)
         {
-            if (_supportedRoof.TryGetValue(roof, out Building cachedBuilding) && !exceptions.Contains(cachedBuilding))
+            if (
+                _supportedRoof.TryGetValue(roof, out Building cachedBuilding)
+                && !exceptions.Contains(cachedBuilding)
+            )
                 return true;
 
             bool supported = false;
@@ -22,7 +26,8 @@ namespace MoveBase
             map.floodFiller.FloodFill(
                 root: roof,
                 passCheck: (IntVec3 cell) =>
-                    cell.Roofed(map) && cell.InHorDistOf(roof, RoofCollapseUtility.RoofMaxSupportDistance),
+                    cell.Roofed(map)
+                    && cell.InHorDistOf(roof, RoofCollapseUtility.RoofMaxSupportDistance),
                 processor: (IntVec3 cell) =>
                 {
                     Building edifice = cell.GetEdifice(map);
@@ -32,7 +37,8 @@ namespace MoveBase
                         supported = true;
                     }
                 },
-                maxCellsToProcess: 512); // Optional safety cap
+                maxCellsToProcess: 512
+            ); // Optional safety cap
 
             return supported;
         }

@@ -2,15 +2,18 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using Verse;
 using HarmonyLib;
 using RimWorld;
+using Verse;
 
 namespace MoveBase
 {
     public class MoveBaseMod : Mod
     {
-        private static FieldInfo _rootdir = typeof(ModContentPack).GetField("rootDirInt", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static FieldInfo _rootdir = typeof(ModContentPack).GetField(
+            "rootDirInt",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
 
         public static DateTime CreationTime;
         public static MoveBaseSetting Setting { get; private set; }
@@ -18,7 +21,8 @@ namespace MoveBase
         private static List<string> queuedLogs = new List<string>();
         private static bool readyToLog = false;
 
-        public MoveBaseMod(ModContentPack content) : base(content)
+        public MoveBaseMod(ModContentPack content)
+            : base(content)
         {
             Setting = GetSettings<MoveBaseSetting>();
             CreationTime = (_rootdir.GetValue(this.Content) as DirectoryInfo).CreationTimeUtc;
@@ -67,4 +71,3 @@ namespace MoveBase
         }
     }
 }
-

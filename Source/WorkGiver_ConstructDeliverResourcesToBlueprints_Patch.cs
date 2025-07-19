@@ -24,8 +24,15 @@ namespace MoveBase
 
         private static void ApplyPatches()
         {
-            MethodInfo original = typeof(WorkGiver_ConstructDeliverResourcesToBlueprints).GetMethod("JobOnThing", BindingFlags.Public | BindingFlags.Instance);
-            MethodInfo postfix = typeof(WorkGiver_ConstructDeliverResourcesToBlueprints_Patch).GetMethod("Postfix", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo original = typeof(WorkGiver_ConstructDeliverResourcesToBlueprints).GetMethod(
+                "JobOnThing",
+                BindingFlags.Public | BindingFlags.Instance
+            );
+            MethodInfo postfix =
+                typeof(WorkGiver_ConstructDeliverResourcesToBlueprints_Patch).GetMethod(
+                    "Postfix",
+                    BindingFlags.Public | BindingFlags.Static
+                );
 
             if (original != null && postfix != null)
             {
@@ -34,7 +41,9 @@ namespace MoveBase
             }
             else
             {
-                MoveBaseMod.DebugLog("Failed to apply JobOnThing Patch. Original method or postfix not found.");
+                MoveBaseMod.DebugLog(
+                    "Failed to apply JobOnThing Patch. Original method or postfix not found."
+                );
             }
         }
 
@@ -46,9 +55,15 @@ namespace MoveBase
         /// <param name="__result"></param>
         public static void Postfix(Thing t, bool forced, ref Job __result)
         {
-            if (t is Blueprint_Install install && install.MiniToInstallOrBuildingToReinstall is Building building && building.def.holdsRoof)
+            if (
+                t is Blueprint_Install install
+                && install.MiniToInstallOrBuildingToReinstall is Building building
+                && building.def.holdsRoof
+            )
             {
-                MoveBaseMod.DebugLog($"Applying postfix for blueprint {install} and building {building}");
+                MoveBaseMod.DebugLog(
+                    $"Applying postfix for blueprint {install} and building {building}"
+                );
 
                 if (forced)
                 {
@@ -56,13 +71,21 @@ namespace MoveBase
                     return;
                 }
 
-                if (building.MapHeld.designationManager.DesignationOn(building, MoveBaseDefOf.MoveBase) != null)
+                if (
+                    building.MapHeld.designationManager.DesignationOn(
+                        building,
+                        MoveBaseDefOf.MoveBase
+                    ) != null
+                )
                 {
                     MoveBaseMod.DebugLog($"Building {building} has a MoveBase designation.");
 
                     bool canRemove = true;
                     HashSet<IntVec3> roofInRange = building.RoofInRange();
-                    List<Building> buildingsBeingRemoved = DesignatorMoveBase.GetBuildingsBeingReinstalled(building).Concat(new[] { building }).ToList();
+                    List<Building> buildingsBeingRemoved = DesignatorMoveBase
+                        .GetBuildingsBeingReinstalled(building)
+                        .Concat(new[] { building })
+                        .ToList();
 
                     foreach (IntVec3 roof in roofInRange)
                     {
@@ -85,7 +108,9 @@ namespace MoveBase
                     }
                     else
                     {
-                        MoveBaseMod.DebugLog($"Cannot remove building {building}. Job result set to null.");
+                        MoveBaseMod.DebugLog(
+                            $"Cannot remove building {building}. Job result set to null."
+                        );
                         __result = null;
                     }
                 }

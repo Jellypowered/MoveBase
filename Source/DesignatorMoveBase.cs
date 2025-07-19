@@ -18,10 +18,13 @@ namespace MoveBase
     /// Designator for Home Mover.
     /// </summary>
     [StaticConstructorOnStartup]
-    
     public class DesignatorMoveBase : Designator
     {
-        private static readonly MethodInfo _setBuildingToReinstall = typeof(Blueprint_Install).GetMethod("SetBuildingToReinstall", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly MethodInfo _setBuildingToReinstall =
+            typeof(Blueprint_Install).GetMethod(
+                "SetBuildingToReinstall",
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
 
         private static Texture2D _icon = ContentFinder<Texture2D>.Get("UI/Designations/MoveBase");
 
@@ -32,7 +35,7 @@ namespace MoveBase
         private static List<RemoveRoofModel> _removeRoofModels = new List<RemoveRoofModel>();
 
         private static Mode _mode = Mode.Select;
-        
+
         /// <summary>
         /// Gets or sets whether designation should be kept when the designator is deselected.
         /// </summary>
@@ -86,7 +89,17 @@ namespace MoveBase
                     IntVec3 deltaCell = GetDeltaCell(thing, model.MousePos, model.GhostPosition);
 
                     Thing inner = thing.GetInnerIfMinified();
-                    if (GenConstruct.CanPlaceBlueprintAt(inner.def, deltaCell, inner.Rotate(model.Rotation), inner.MapHeld, thing: inner).Accepted)
+                    if (
+                        GenConstruct
+                            .CanPlaceBlueprintAt(
+                                inner.def,
+                                deltaCell,
+                                inner.Rotate(model.Rotation),
+                                inner.MapHeld,
+                                thing: inner
+                            )
+                            .Accepted
+                    )
                     {
                         // 🔥 Despawn it first
                         if (thing.Spawned)
@@ -94,16 +107,27 @@ namespace MoveBase
                             thing.DeSpawn(DestroyMode.Vanish);
                         }
                         if (thing is MinifiedThing minifiedThing)
-                            GenConstruct.PlaceBlueprintForInstall(minifiedThing, deltaCell, minifiedThing.MapHeld, inner.Rotate(model.Rotation), Faction.OfPlayer);
+                            GenConstruct.PlaceBlueprintForInstall(
+                                minifiedThing,
+                                deltaCell,
+                                minifiedThing.MapHeld,
+                                inner.Rotate(model.Rotation),
+                                Faction.OfPlayer
+                            );
                         else
-                            GenConstruct.PlaceBlueprintForReinstall(thing as Building, deltaCell, thing.MapHeld, thing.Rotate(model.Rotation), Faction.OfPlayer);
+                            GenConstruct.PlaceBlueprintForReinstall(
+                                thing as Building,
+                                deltaCell,
+                                thing.MapHeld,
+                                thing.Rotate(model.Rotation),
+                                Faction.OfPlayer
+                            );
 
                         model.WaitingThings.Remove(thing);
                     }
                 }
             }
         }
-
 
         /// <summary>
         /// Clear cache of roof to remove.
@@ -121,7 +145,11 @@ namespace MoveBase
             if (Scribe.mode == LoadSaveMode.Saving)
                 RemoveEmptyCache();
 
-            Scribe_Collections.Look(ref _removeRoofModels, nameof(_removeRoofModels), LookMode.Deep);
+            Scribe_Collections.Look(
+                ref _removeRoofModels,
+                nameof(_removeRoofModels),
+                LookMode.Deep
+            );
             _removeRoofModels = _removeRoofModels ?? new List<RemoveRoofModel>();
         }
 
@@ -244,38 +272,47 @@ namespace MoveBase
         public override void DoExtraGuiControls(float leftX, float bottomY)
         {
             Rect winRect = new Rect(leftX, bottomY - 90f, 200f, 90f);
-            Find.WindowStack.ImmediateWindow(Rand.Int, winRect, WindowLayer.GameUI, delegate
-            {
-                RotationDirection rotationDirection = RotationDirection.None;
-                Text.Anchor = TextAnchor.MiddleCenter;
-                Text.Font = GameFont.Medium;
-                Rect rect = new Rect(winRect.width / 2f - 64f - 5f, 15f, 64f, 64f);
-                if (Widgets.ButtonImage(rect, TexUI.RotLeftTex))
+            Find.WindowStack.ImmediateWindow(
+                Rand.Int,
+                winRect,
+                WindowLayer.GameUI,
+                delegate
                 {
-                    SoundDefOf.DragSlider.PlayOneShotOnCamera();
-                    rotationDirection = RotationDirection.Counterclockwise;
-                    Event.current.Use();
-                }
-                Widgets.Label(rect, KeyBindingDefOf.Designator_RotateLeft.MainKeyLabel);
-                Rect rect2 = new Rect(winRect.width / 2f + 5f, 15f, 64f, 64f);
-                if (Widgets.ButtonImage(rect2, TexUI.RotRightTex))
-                {
-                    SoundDefOf.DragSlider.PlayOneShotOnCamera();
-                    rotationDirection = RotationDirection.Clockwise;
-                    Event.current.Use();
-                }
-                Widgets.Label(rect2, KeyBindingDefOf.Designator_RotateRight.MainKeyLabel);
-                if (rotationDirection != 0)
-                {
-                    foreach (Thing thing in DesignatedThings)
+                    RotationDirection rotationDirection = RotationDirection.None;
+                    Text.Anchor = TextAnchor.MiddleCenter;
+                    Text.Font = GameFont.Medium;
+                    Rect rect = new Rect(winRect.width / 2f - 64f - 5f, 15f, 64f, 64f);
+                    if (Widgets.ButtonImage(rect, TexUI.RotLeftTex))
                     {
-                        _ghostPos[thing] = this.VectorRotation(_ghostPos[thing], rotationDirection, thing);
+                        SoundDefOf.DragSlider.PlayOneShotOnCamera();
+                        rotationDirection = RotationDirection.Counterclockwise;
+                        Event.current.Use();
                     }
-                    _rotation.Rotate(rotationDirection);
+                    Widgets.Label(rect, KeyBindingDefOf.Designator_RotateLeft.MainKeyLabel);
+                    Rect rect2 = new Rect(winRect.width / 2f + 5f, 15f, 64f, 64f);
+                    if (Widgets.ButtonImage(rect2, TexUI.RotRightTex))
+                    {
+                        SoundDefOf.DragSlider.PlayOneShotOnCamera();
+                        rotationDirection = RotationDirection.Clockwise;
+                        Event.current.Use();
+                    }
+                    Widgets.Label(rect2, KeyBindingDefOf.Designator_RotateRight.MainKeyLabel);
+                    if (rotationDirection != 0)
+                    {
+                        foreach (Thing thing in DesignatedThings)
+                        {
+                            _ghostPos[thing] = this.VectorRotation(
+                                _ghostPos[thing],
+                                rotationDirection,
+                                thing
+                            );
+                        }
+                        _rotation.Rotate(rotationDirection);
+                    }
+                    Text.Anchor = TextAnchor.UpperLeft;
+                    Text.Font = GameFont.Small;
                 }
-                Text.Anchor = TextAnchor.UpperLeft;
-                Text.Font = GameFont.Small;
-            });
+            );
         }
 
         /// <summary>
@@ -321,7 +358,10 @@ namespace MoveBase
                 if (base.Map.designationManager.DesignationOn(t, Designation) != null)
                     return false;
 
-                if (base.Map.designationManager.DesignationOn(t, DesignationDefOf.Deconstruct) != null)
+                if (
+                    base.Map.designationManager.DesignationOn(t, DesignationDefOf.Deconstruct)
+                    != null
+                )
                     return false;
 
                 return true;
@@ -365,7 +405,8 @@ namespace MoveBase
                 GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Place;
                 HashSet<Thing> placedThings = new HashSet<Thing>();
                 Dictionary<Thing, Thing> twinThings = new Dictionary<Thing, Thing>();
-                Dictionary<Thing, Blueprint_Install> blueprintWork = new Dictionary<Thing, Blueprint_Install>();
+                Dictionary<Thing, Blueprint_Install> blueprintWork =
+                    new Dictionary<Thing, Blueprint_Install>();
                 Dictionary<Thing, IntVec3> siblingWork = new Dictionary<Thing, IntVec3>();
 
                 IntVec3 mousePos = UI.MouseCell();
@@ -381,9 +422,17 @@ namespace MoveBase
                         {
                             if (designatedThing.IdenticalWith(_rotation, thingOnCell))
                             {
-                                if (blueprintWork.TryGetValue(thingOnCell, out Blueprint_Install install))
+                                if (
+                                    blueprintWork.TryGetValue(
+                                        thingOnCell,
+                                        out Blueprint_Install install
+                                    )
+                                )
                                 {
-                                    Thing twin = this.GetTailInTwinThings(twinThings, designatedThing);
+                                    Thing twin = this.GetTailInTwinThings(
+                                        twinThings,
+                                        designatedThing
+                                    );
 
                                     _setBuildingToReinstall.Invoke(install, new[] { twin });
                                     blueprintWork[twin] = install;
@@ -392,7 +441,10 @@ namespace MoveBase
                                 }
                                 else if (siblingWork.TryGetValue(thingOnCell, out IntVec3 position))
                                 {
-                                    Thing twin = this.GetTailInTwinThings(twinThings, designatedThing);
+                                    Thing twin = this.GetTailInTwinThings(
+                                        twinThings,
+                                        designatedThing
+                                    );
                                     _ghostPos[twin] = position;
                                     siblingWork.Remove(thingOnCell);
                                     siblingWork[twin] = position;
@@ -405,7 +457,10 @@ namespace MoveBase
                                     placedThings.Add(thingOnCell);
                                 }
 
-                                this.Map.designationManager.TryRemoveDesignationOn(thingOnCell, MoveBaseDefOf.MoveBase);
+                                this.Map.designationManager.TryRemoveDesignationOn(
+                                    thingOnCell,
+                                    MoveBaseDefOf.MoveBase
+                                );
 
                                 foundTwin = true;
                                 break;
@@ -429,32 +484,38 @@ namespace MoveBase
 
                     Thing twin1 = this.GetTailInTwinThings(twinThings, designatedThing);
 
-
                     AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(
-                        twin1.def
-                        , drawCell
-                        , GetRotation(twin1)
-                        , twin1.MapHeld
-                        , false
-                        , null
-                        , twin1);
+                        twin1.def,
+                        drawCell,
+                        GetRotation(twin1),
+                        twin1.MapHeld,
+                        false,
+                        null,
+                        twin1
+                    );
 
                     if (report.Accepted)
                     {
                         Building building = twin1 as Building;
-                        blueprintWork[building] = GenConstruct.PlaceBlueprintForReinstall(building, drawCell, building.MapHeld, GetRotation(building), Faction.OfPlayer);
+                        blueprintWork[building] = GenConstruct.PlaceBlueprintForReinstall(
+                            building,
+                            drawCell,
+                            building.MapHeld,
+                            GetRotation(building),
+                            Faction.OfPlayer
+                        );
                         placedThings.Add(building);
                     }
                 }
 
-                RemoveRoofModel model =
-                    InitModel(
-                        DesignatedThings
-                        , DesignatedThings.Except(placedThings).ToList()
-                        , DesignatedThings.First().MapHeld
-                        , mousePos
-                        , _rotation
-                        , _ghostPos);
+                RemoveRoofModel model = InitModel(
+                    DesignatedThings,
+                    DesignatedThings.Except(placedThings).ToList(),
+                    DesignatedThings.First().MapHeld,
+                    mousePos,
+                    _rotation,
+                    _ghostPos
+                );
 
                 ResolveDeadLock(model);
 
@@ -521,8 +582,7 @@ namespace MoveBase
         {
             _removeRoofModels
                 .FirstOrDefault(model => model.BuildingsToReinstall.Contains(thing))
-                ?.RoofToRemove
-                .Add(roof);
+                ?.RoofToRemove.Add(roof);
         }
 
         public static void UninstallJobCallback(Building building, Map map)
@@ -531,7 +591,10 @@ namespace MoveBase
             {
                 if (model.WaitingThings.Contains(building))
                 {
-                    MinifiedThing minifiedThing = (MinifiedThing)map.listerThings.ThingsInGroup(ThingRequestGroup.MinifiedThing).FirstOrDefault(t => t.GetInnerIfMinified() == building);
+                    MinifiedThing minifiedThing = (MinifiedThing)
+                        map
+                            .listerThings.ThingsInGroup(ThingRequestGroup.MinifiedThing)
+                            .FirstOrDefault(t => t.GetInnerIfMinified() == building);
                     model.GhostPosition[minifiedThing] = model.GhostPosition[building];
                     model.WaitingThings.Remove(building);
                     model.WaitingThings.Add(minifiedThing);
@@ -557,15 +620,43 @@ namespace MoveBase
 
                 while (true)
                 {
-                    IntVec3 spawnCell = GetDeltaCell(lastFound, model.MousePos, model.GhostPosition);
-                    List<IntVec3> rect = GenAdj.OccupiedRect(spawnCell, lastFound.Rotate(model.Rotation), lastFound.def.size).ToList();
+                    IntVec3 spawnCell = GetDeltaCell(
+                        lastFound,
+                        model.MousePos,
+                        model.GhostPosition
+                    );
+                    List<IntVec3> rect = GenAdj
+                        .OccupiedRect(
+                            spawnCell,
+                            lastFound.Rotate(model.Rotation),
+                            lastFound.def.size
+                        )
+                        .ToList();
                     if (lastFound.def.hasInteractionCell)
                     {
-                        rect.Add(Verse.ThingUtility.InteractionCellWhenAt(lastFound.def, spawnCell, lastFound.Rotate(model.Rotation), lastFound.MapHeld));
+                        rect.Add(
+                            Verse.ThingUtility.InteractionCellWhenAt(
+                                lastFound.def,
+                                spawnCell,
+                                lastFound.Rotate(model.Rotation),
+                                lastFound.MapHeld
+                            )
+                        );
                     }
-                    IEnumerable<Thing> thingsOnCell = rect.SelectMany(c => c.GetThingList(lastFound.MapHeld).Where(t => t.def.blueprintDef != null && t.def.Minifiable));
-                    lastFound = thingsOnCell.FirstOrDefault(t => GenConstruct.BlocksConstruction(lastFound, t) && model.WaitingThings.Contains(t))
-                        ?? ThingUtility.BlockAdjacentInteractionCell(lastFound, spawnCell, lastFound.Rotate(model.Rotation));
+                    IEnumerable<Thing> thingsOnCell = rect.SelectMany(c =>
+                        c.GetThingList(lastFound.MapHeld)
+                            .Where(t => t.def.blueprintDef != null && t.def.Minifiable)
+                    );
+                    lastFound =
+                        thingsOnCell.FirstOrDefault(t =>
+                            GenConstruct.BlocksConstruction(lastFound, t)
+                            && model.WaitingThings.Contains(t)
+                        )
+                        ?? ThingUtility.BlockAdjacentInteractionCell(
+                            lastFound,
+                            spawnCell,
+                            lastFound.Rotate(model.Rotation)
+                        );
                     if (lastFound == null || foundThings.Contains(lastFound))
                         break;
 
@@ -578,7 +669,9 @@ namespace MoveBase
                 }
                 else
                 {
-                    thing.Map.designationManager.AddDesignation(new Designation(thing, DesignationDefOf.Uninstall));
+                    thing.Map.designationManager.AddDesignation(
+                        new Designation(thing, DesignationDefOf.Uninstall)
+                    );
                 }
             }
         }
@@ -591,16 +684,27 @@ namespace MoveBase
             return thing;
         }
 
-        private static IntVec3 GetDeltaCell(Thing thing, IntVec3 mousePos, Dictionary<Thing, IntVec3> ghostPos)
+        private static IntVec3 GetDeltaCell(
+            Thing thing,
+            IntVec3 mousePos,
+            Dictionary<Thing, IntVec3> ghostPos
+        )
         {
-            return new IntVec3(mousePos.x + ghostPos[thing].x, mousePos.y, mousePos.z + ghostPos[thing].z);
+            return new IntVec3(
+                mousePos.x + ghostPos[thing].x,
+                mousePos.y,
+                mousePos.z + ghostPos[thing].z
+            );
         }
 
         private static void RemoveEmptyCache()
         {
             foreach (RemoveRoofModel model in _removeRoofModels.ToList())
             {
-                if (!model.BuildingsToReinstall.EnumerableNullOrEmpty() && !model.RoofToRemove.EnumerableNullOrEmpty())
+                if (
+                    !model.BuildingsToReinstall.EnumerableNullOrEmpty()
+                    && !model.RoofToRemove.EnumerableNullOrEmpty()
+                )
                 {
                     _removeRoofModels.Remove(model);
                 }
@@ -611,9 +715,11 @@ namespace MoveBase
         {
             List<Thing> things = new List<Thing>();
 
-            foreach (Thing item in from t in base.Map.thingGrid.ThingsAt(loc)
-                                   orderby t.def.altitudeLayer descending
-                                   select t)
+            foreach (
+                Thing item in from t in base.Map.thingGrid.ThingsAt(loc)
+                orderby t.def.altitudeLayer descending
+                select t
+            )
             {
                 if (this.CanDesignateThing(item).Accepted)
                     things.Add(item);
@@ -624,9 +730,11 @@ namespace MoveBase
 
         private Thing TopReinstallableInCell(IntVec3 loc)
         {
-            foreach (Thing item in from t in base.Map.thingGrid.ThingsAt(loc)
-                                   orderby t.def.altitudeLayer descending
-                                   select t)
+            foreach (
+                Thing item in from t in base.Map.thingGrid.ThingsAt(loc)
+                orderby t.def.altitudeLayer descending
+                select t
+            )
             {
                 if (this.CanDesignateThing(item).Accepted)
                 {
@@ -642,17 +750,18 @@ namespace MoveBase
             AcceptanceReport result = AcceptanceReport.WasAccepted;
             GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Check;
             this.TraverseDesignateThings(
-                mousePos
-                , (drawCell, thing) =>
+                mousePos,
+                (drawCell, thing) =>
                 {
                     AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(
-                        thing.def
-                        , drawCell
-                        , GetRotation(thing)
-                        , thing.MapHeld
-                        , false
-                        , null
-                        , thing);
+                        thing.def,
+                        drawCell,
+                        GetRotation(thing),
+                        thing.MapHeld,
+                        false,
+                        null,
+                        thing
+                    );
                     if (!report.Accepted)
                     {
                         result = report;
@@ -660,7 +769,8 @@ namespace MoveBase
                     }
 
                     return false;
-                });
+                }
+            );
 
             return result;
         }
@@ -668,7 +778,15 @@ namespace MoveBase
         private AcceptanceReport CanReinstall(Thing thing, IntVec3 drawCell)
         {
             GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Check;
-            AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(thing.def, drawCell, GetRotation(thing), thing.MapHeld, false, null, thing);
+            AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(
+                thing.def,
+                drawCell,
+                GetRotation(thing),
+                thing.MapHeld,
+                false,
+                null,
+                thing
+            );
 
             return report;
         }
@@ -685,12 +803,13 @@ namespace MoveBase
         {
             IntVec3 mousePos = UI.MouseCell();
             this.TraverseDesignateThings(
-                mousePos
-                , (drawCell, thing) =>
+                mousePos,
+                (drawCell, thing) =>
                 {
                     this.DrawGhostThing(drawCell, thing);
                     return false;
-                });
+                }
+            );
         }
 
         private void TraverseDesignateThings(IntVec3 mousePos, Func<IntVec3, Thing, bool> func)
@@ -705,11 +824,20 @@ namespace MoveBase
         private void DrawGhostThing(IntVec3 cell, Thing thing)
         {
             Graphic baseGraphic = thing.Graphic.ExtractInnerGraphicFor(thing);
-            Color color = this.CanReinstall(thing, cell).Accepted ? Designator_Place.CanPlaceColor : Designator_Place.CannotPlaceColor;
+            Color color = this.CanReinstall(thing, cell).Accepted
+                ? Designator_Place.CanPlaceColor
+                : Designator_Place.CannotPlaceColor;
             try
             {
-                GhostDrawer.DrawGhostThing(cell, GetRotation(thing), thing.def, baseGraphic, color,
-                    AltitudeLayer.Blueprint, thing);
+                GhostDrawer.DrawGhostThing(
+                    cell,
+                    GetRotation(thing),
+                    thing.def,
+                    baseGraphic,
+                    color,
+                    AltitudeLayer.Blueprint,
+                    thing
+                );
             }
             catch
             {
@@ -717,7 +845,11 @@ namespace MoveBase
             }
         }
 
-        private IntVec3 VectorRotation(IntVec3 cell, RotationDirection rotationDirection, Thing thing)
+        private IntVec3 VectorRotation(
+            IntVec3 cell,
+            RotationDirection rotationDirection,
+            Thing thing
+        )
         {
             if (thing.def.rotatable || thing.def.size == IntVec2.One)
             {
@@ -726,15 +858,15 @@ namespace MoveBase
             else
             {
                 MoveBaseMod.DebugLog($"Position: {cell}");
-                IEnumerable<IntVec3> corners = thing.OccupiedRect()
-                                                    .Corners
-                                                    .Select(corner =>
-                                                    {
-                                                        IntVec3 normalized = corner - thing.Position + cell;
-                                                        MoveBaseMod.DebugLog($"Normalized: {normalized}");
-                                                        return normalized;
-                                                    })
-                                                    .Select(Rotate);
+                IEnumerable<IntVec3> corners = thing
+                    .OccupiedRect()
+                    .Corners.Select(corner =>
+                    {
+                        IntVec3 normalized = corner - thing.Position + cell;
+                        MoveBaseMod.DebugLog($"Normalized: {normalized}");
+                        return normalized;
+                    })
+                    .Select(Rotate);
 
                 var value = GetCenter(corners.ToList());
                 MoveBaseMod.DebugLog($"Return value: {value}");
@@ -756,7 +888,10 @@ namespace MoveBase
 
             IntVec3 GetCenter(List<IntVec3> cells)
             {
-                int minX, minZ, maxX, maxZ;
+                int minX,
+                    minZ,
+                    maxX,
+                    maxZ;
                 maxX = maxZ = int.MinValue;
                 minX = minZ = int.MaxValue;
 
@@ -789,34 +924,42 @@ namespace MoveBase
             {
                 foreach (Thing thing in DesignatedThings)
                 {
-                    _ghostPos[thing] = this.VectorRotation(_ghostPos[thing], rotationDirection, thing);
+                    _ghostPos[thing] = this.VectorRotation(
+                        _ghostPos[thing],
+                        rotationDirection,
+                        thing
+                    );
                 }
                 _rotation.Rotate(rotationDirection);
                 SoundDefOf.DragSlider.PlayOneShotOnCamera();
             }
         }
 
-
-        private static RemoveRoofModel InitModel(List<Thing> designatedThings, List<Thing> waitingThings, Map map, IntVec3 mousePos, Rot4 rotation, Dictionary<Thing, IntVec3> ghostPos)
+        private static RemoveRoofModel InitModel(
+            List<Thing> designatedThings,
+            List<Thing> waitingThings,
+            Map map,
+            IntVec3 mousePos,
+            Rot4 rotation,
+            Dictionary<Thing, IntVec3> ghostPos
+        )
         {
             RemoveRoofModel newModel = new RemoveRoofModel(
-                designatedThings
-                , designatedThings.OfType<Building>().Where(b => b.def.holdsRoof).ToHashSet()
-                , waitingThings
-                , new HashSet<IntVec3>()
-                , map
-                , mousePos
-                , rotation
-                , ghostPos);
+                designatedThings,
+                designatedThings.OfType<Building>().Where(b => b.def.holdsRoof).ToHashSet(),
+                waitingThings,
+                new HashSet<IntVec3>(),
+                map,
+                mousePos,
+                rotation,
+                ghostPos
+            );
             _removeRoofModels.Add(newModel);
             return newModel;
         }
 
-
-
         private class RemoveRoofModel : IExposable
         {
-
             private List<Thing> ghostThings = new List<Thing>();
             private List<IntVec3> ghostPos = new List<IntVec3>();
 
@@ -838,11 +981,18 @@ namespace MoveBase
 
             public Map Map;
 
-            public RemoveRoofModel()
-            {
-            }
+            public RemoveRoofModel() { }
 
-            public RemoveRoofModel(List<Thing> designatedThings, HashSet<Building> roofSupporterToReinstall, IEnumerable<Thing> waitingThings, HashSet<IntVec3> roofToRemove, Map map, IntVec3 mousePos, Rot4 rotation, Dictionary<Thing, IntVec3> ghostPos)
+            public RemoveRoofModel(
+                List<Thing> designatedThings,
+                HashSet<Building> roofSupporterToReinstall,
+                IEnumerable<Thing> waitingThings,
+                HashSet<IntVec3> roofToRemove,
+                Map map,
+                IntVec3 mousePos,
+                Rot4 rotation,
+                Dictionary<Thing, IntVec3> ghostPos
+            )
             {
                 this.DesignatedThings = designatedThings;
                 this.BuildingsToReinstall = roofSupporterToReinstall;
@@ -862,17 +1012,43 @@ namespace MoveBase
                     this.CleanCache();
                 }
 
-                Scribe_Collections.Look(ref this.BuildingsToReinstall, nameof(this.BuildingsToReinstall), LookMode.Reference);
-                Scribe_Collections.Look(ref this.BuildingsBeingReinstalled, nameof(this.BuildingsBeingReinstalled), LookMode.Reference);
-                Scribe_Collections.Look(ref this.RoofToRemove, nameof(RoofToRemove), LookMode.Value);
-                Scribe_Collections.Look(ref this.DesignatedThings, nameof(this.DesignatedThings), LookMode.Reference);
-                Scribe_Collections.Look(ref this.WaitingThings, nameof(this.WaitingThings), LookMode.Reference);
+                Scribe_Collections.Look(
+                    ref this.BuildingsToReinstall,
+                    nameof(this.BuildingsToReinstall),
+                    LookMode.Reference
+                );
+                Scribe_Collections.Look(
+                    ref this.BuildingsBeingReinstalled,
+                    nameof(this.BuildingsBeingReinstalled),
+                    LookMode.Reference
+                );
+                Scribe_Collections.Look(
+                    ref this.RoofToRemove,
+                    nameof(RoofToRemove),
+                    LookMode.Value
+                );
+                Scribe_Collections.Look(
+                    ref this.DesignatedThings,
+                    nameof(this.DesignatedThings),
+                    LookMode.Reference
+                );
+                Scribe_Collections.Look(
+                    ref this.WaitingThings,
+                    nameof(this.WaitingThings),
+                    LookMode.Reference
+                );
                 Scribe_References.Look(ref this.Map, nameof(this.Map));
                 Scribe_Values.Look(ref this.MousePos, nameof(this.MousePos));
                 Scribe_Values.Look(ref this.Rotation, nameof(this.Rotation));
 
-
-                Scribe_Collections.Look(ref this.GhostPosition, nameof(this.GhostPosition), LookMode.Reference, LookMode.Value, ref ghostThings, ref ghostPos);
+                Scribe_Collections.Look(
+                    ref this.GhostPosition,
+                    nameof(this.GhostPosition),
+                    LookMode.Reference,
+                    LookMode.Value,
+                    ref ghostThings,
+                    ref ghostPos
+                );
             }
 
             private void CleanCache()
@@ -894,7 +1070,8 @@ namespace MoveBase
                 }
             }
 
-            private static void RemoveDestroyedThings<T>(ICollection<T> things) where T : Thing
+            private static void RemoveDestroyedThings<T>(ICollection<T> things)
+                where T : Thing
             {
                 if (things.EnumerableNullOrEmpty())
                     return;

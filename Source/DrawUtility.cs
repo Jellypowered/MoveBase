@@ -17,9 +17,11 @@ namespace MoveBase
             {
                 Vector2 size = Text.CalcSize(text);
                 Widgets.DrawLine(
-                    new Vector2(labelRect.x, labelRect.y + size.y)
-                    , new Vector2(labelRect.x + size.x, labelRect.y + size.y)
-                    , ColorLibrary.SkyBlue, 1);
+                    new Vector2(labelRect.x, labelRect.y + size.y),
+                    new Vector2(labelRect.x + size.x, labelRect.y + size.y),
+                    ColorLibrary.SkyBlue,
+                    1
+                );
             }
 
             if (Widgets.ButtonInvisible(labelRect))
@@ -27,6 +29,5 @@ namespace MoveBase
                 Application.OpenURL(url);
             }
         }
-
     }
 }

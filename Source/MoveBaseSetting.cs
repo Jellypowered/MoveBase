@@ -20,7 +20,10 @@ namespace MoveBase
         {
             Listing_Standard listing = new Listing_Standard();
             listing.Begin(inRect);
-            listing.CheckboxLabeled("Enable debug logging (requires dev mode)", ref enableDebugLogging);
+            listing.CheckboxLabeled(
+                "Enable debug logging (requires dev mode)",
+                ref enableDebugLogging
+            );
             listing.End();
         }
     }

@@ -1,11 +1,11 @@
-﻿using RimWorld;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
+using RimWorld;
 using Verse;
 
 namespace MoveBase
@@ -22,8 +22,14 @@ namespace MoveBase
 
         private static void ApplyPatches()
         {
-            MethodInfo original = typeof(RoofGrid).GetMethod("SetRoof", BindingFlags.Instance | BindingFlags.Public);
-            MethodInfo postfix = typeof(RoofGrid_SetRoof_Patch).GetMethod("Postfix", BindingFlags.Static | BindingFlags.Public);
+            MethodInfo original = typeof(RoofGrid).GetMethod(
+                "SetRoof",
+                BindingFlags.Instance | BindingFlags.Public
+            );
+            MethodInfo postfix = typeof(RoofGrid_SetRoof_Patch).GetMethod(
+                "Postfix",
+                BindingFlags.Static | BindingFlags.Public
+            );
 
             if (original != null && postfix != null)
             {
@@ -32,7 +38,9 @@ namespace MoveBase
             }
             else
             {
-                MoveBaseMod.DebugLog("Failed to apply SetRoof Patch. Original method or postfix not found.");
+                MoveBaseMod.DebugLog(
+                    "Failed to apply SetRoof Patch. Original method or postfix not found."
+                );
             }
         }
 

@@ -15,8 +15,14 @@ namespace MoveBase
     {
         static Designation_Notify_Removing_Patch()
         {
-            MethodInfo original = typeof(Designation).GetMethod("Notify_Removing", BindingFlags.Instance | BindingFlags.NonPublic);
-            MethodInfo postfix = typeof(Designation_Notify_Removing_Patch).GetMethod("Postfix", BindingFlags.Static | BindingFlags.Public);
+            MethodInfo original = typeof(Designation).GetMethod(
+                "Notify_Removing",
+                BindingFlags.Instance | BindingFlags.NonPublic
+            );
+            MethodInfo postfix = typeof(Designation_Notify_Removing_Patch).GetMethod(
+                "Postfix",
+                BindingFlags.Static | BindingFlags.Public
+            );
         }
 
         public static void Postfix(Designation __instance)

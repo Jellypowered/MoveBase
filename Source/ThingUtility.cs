@@ -15,14 +15,16 @@ namespace MoveBase
             HashSet<IntVec3> supportedRoof = new HashSet<IntVec3>();
             Map map = building.MapHeld;
             map.floodFiller.FloodFill(
-                building.Position
-                , (cell) => cell.InHorDistOf(building.Position, RoofCollapseUtility.RoofMaxSupportDistance)
-                , (cell) =>
+                building.Position,
+                (cell) =>
+                    cell.InHorDistOf(building.Position, RoofCollapseUtility.RoofMaxSupportDistance),
+                (cell) =>
                 {
                     if (cell.Roofed(map))
                         supportedRoof.Add(cell);
-                }
-                , extraRoots: building.OccupiedRect());
+                },
+                extraRoots: building.OccupiedRect()
+            );
 
             return supportedRoof;
         }
@@ -72,11 +74,21 @@ namespace MoveBase
                     List<Thing> things = cell.GetThingList(thing.MapHeld);
                     foreach (Thing neighbour in things)
                     {
-                        if (neighbour.def.hasInteractionCell
-                            && (thing.def.passability == Traversability.Impassable || thing.def == neighbour.def)
+                        if (
+                            neighbour.def.hasInteractionCell
+                            && (
+                                thing.def.passability == Traversability.Impassable
+                                || thing.def == neighbour.def
+                            )
                             && cellRect.Contains(
                                 Verse.ThingUtility.InteractionCellWhenAt(
-                                    neighbour.def, neighbour.Position, neighbour.Rotation, neighbour.Map)))
+                                    neighbour.def,
+                                    neighbour.Position,
+                                    neighbour.Rotation,
+                                    neighbour.Map
+                                )
+                            )
+                        )
                         {
                             return neighbour;
                         }

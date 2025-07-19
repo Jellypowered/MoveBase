@@ -13,21 +13,24 @@ namespace MoveBase
     [StaticConstructorOnStartup]
     public static class MinifyUtility_MakeMinified
     {
-
-        private static readonly FieldInfo _tickListNormal =
-            typeof(TickManager).GetField("tickListNormal", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo _tickListNormal = typeof(TickManager).GetField(
+            "tickListNormal",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
 
         [HarmonyPatch(typeof(MinifyUtility), nameof(MinifyUtility.MakeMinified))]
         public static class MinifyUtility_MakeMinified_Patch
         {
             public static bool Prefix(Thing thing, DestroyMode destroyMode, out bool __state)
             {
-                __state = thing?.MapHeld?.designationManager?.DesignationOn(thing, MoveBaseDefOf.MoveBase) != null;
+                __state =
+                    thing?.MapHeld?.designationManager?.DesignationOn(thing, MoveBaseDefOf.MoveBase)
+                    != null;
 
                 if (__state && thing is Building building && building.Spawned)
                 {
                     MarkBeingMinified(building);
-                    
+
                     // Remove from normal tick list
                     TickList tickList = _tickListNormal?.GetValue(Find.TickManager) as TickList;
                     tickList?.DeregisterThing(building);
@@ -42,7 +45,12 @@ namespace MoveBase
                 return true; // Proceed to original method
             }
 
-            public static void Postfix(Thing thing, DestroyMode destroyMode, MinifiedThing __result, bool __state)
+            public static void Postfix(
+                Thing thing,
+                DestroyMode destroyMode,
+                MinifiedThing __result,
+                bool __state
+            )
             {
                 if (__state && __result != null)
                 {
@@ -71,13 +79,14 @@ namespace MoveBase
 
                 if (__instance.Map == null || !__instance.Spawned)
                 {
-                //    MoveBaseMod.DebugLog($"Skipped ticking door {__instance} due to null map or unspawned.");
+                    //    MoveBaseMod.DebugLog($"Skipped ticking door {__instance} due to null map or unspawned.");
                     return false;
                 }
 
                 return true;
             }
         }
+
         public static class MoveBase_DelayedCleanup
         {
             private static readonly List<Thing> toCleanup = new List<Thing>();
@@ -90,7 +99,8 @@ namespace MoveBase
 
             public static void Tick()
             {
-                if (toCleanup.Count == 0) return;
+                if (toCleanup.Count == 0)
+                    return;
 
                 foreach (var thing in toCleanup)
                 {
@@ -104,6 +114,7 @@ namespace MoveBase
                 toCleanup.Clear();
             }
         }
+
         [HarmonyPatch(typeof(TickManager), nameof(TickManager.DoSingleTick))]
         public static class TickManager_DoSingleTick_Patch
         {
@@ -117,9 +128,9 @@ namespace MoveBase
 
         public static void MarkBeingMinified(Thing thing)
         {
-            if (thing != null) beingMinified.Add(thing);
+            if (thing != null)
+                beingMinified.Add(thing);
         }
-
 
         public static bool IsBeingMinified(Thing thing)
         {
@@ -128,7 +139,8 @@ namespace MoveBase
 
         public static void ClearBeingMinified(Thing thing)
         {
-            if (thing != null) beingMinified.Remove(thing);
+            if (thing != null)
+                beingMinified.Remove(thing);
         }
 
         /// <summary>
@@ -144,10 +156,12 @@ namespace MoveBase
             foreach (var fieldName in fieldNames)
             {
                 var field = tickManager.GetType().GetField(fieldName, flags);
-                if (field == null) continue;
+                if (field == null)
+                    continue;
 
                 var tickList = field.GetValue(tickManager) as TickList;
-                if (tickList == null) continue;
+                if (tickList == null)
+                    continue;
 
                 var things = tickListThingsField?.GetValue(tickList) as List<Thing>;
                 if (things != null && things.Contains(thing))
@@ -155,6 +169,6 @@ namespace MoveBase
                     tickList.DeregisterThing(thing);
                 }
             }
-        } 
         }
     }
+}

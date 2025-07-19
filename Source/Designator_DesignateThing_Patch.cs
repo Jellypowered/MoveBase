@@ -15,11 +15,23 @@ namespace MoveBase
     {
         static Designator_Patch()
         {
-            MethodInfo originalDesignateThing = typeof(Designator_Cancel).GetMethod("DesignateThing", BindingFlags.Public | BindingFlags.Instance);
-            MethodInfo designateThingPrefix = typeof(Designator_Patch).GetMethod("DesignateThingPrefix", BindingFlags.Static | BindingFlags.Public);
-        
-            MethodInfo originalDesignateSingleCell = typeof(Designator_Cancel).GetMethod("DesignateSingleCell", BindingFlags.Public | BindingFlags.Instance);
-            MethodInfo designteSingleCellPrefix = typeof(Designator_Patch).GetMethod("DesignateSingleCellPrefix", BindingFlags.Static | BindingFlags.Public);
+            MethodInfo originalDesignateThing = typeof(Designator_Cancel).GetMethod(
+                "DesignateThing",
+                BindingFlags.Public | BindingFlags.Instance
+            );
+            MethodInfo designateThingPrefix = typeof(Designator_Patch).GetMethod(
+                "DesignateThingPrefix",
+                BindingFlags.Static | BindingFlags.Public
+            );
+
+            MethodInfo originalDesignateSingleCell = typeof(Designator_Cancel).GetMethod(
+                "DesignateSingleCell",
+                BindingFlags.Public | BindingFlags.Instance
+            );
+            MethodInfo designteSingleCellPrefix = typeof(Designator_Patch).GetMethod(
+                "DesignateSingleCellPrefix",
+                BindingFlags.Static | BindingFlags.Public
+            );
         }
 
         public static void DesignateThingPrefix(Designator __instance, Thing t)
@@ -40,7 +52,12 @@ namespace MoveBase
             {
                 foreach (Thing thing in c.GetThingList(__instance.Map))
                 {
-                    if (thing.MapHeld.designationManager.DesignationOn(thing, MoveBaseDefOf.MoveBase) != null)
+                    if (
+                        thing.MapHeld.designationManager.DesignationOn(
+                            thing,
+                            MoveBaseDefOf.MoveBase
+                        ) != null
+                    )
                     {
                         DesignatorMoveBase.Notify_Removing_Callback(thing);
                         InstallBlueprintUtility.CancelBlueprintsFor(thing);

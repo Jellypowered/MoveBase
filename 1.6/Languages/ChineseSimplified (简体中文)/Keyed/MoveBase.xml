@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <LanguageData>
-    <!-- EN: Move building to another location -->
+  <!-- EN: Move building to another location -->
   <MoveBase_Description>将建筑物移动到另一个位置</MoveBase_Description>
-    <!-- EN: Home Mover -->
+  <!-- EN: Home Mover -->
   <MoveBase_Label>搬家公司</MoveBase_Label>
 </LanguageData>

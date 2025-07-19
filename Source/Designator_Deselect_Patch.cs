@@ -22,11 +22,18 @@ namespace MoveBase
 
         public static void Prefix(DesignatorManager __instance)
         {
-            if (__instance.SelectedDesignator is DesignatorMoveBase moveBase && !moveBase.KeepDesignation && moveBase.DesignatedThings.Any())
+            if (
+                __instance.SelectedDesignator is DesignatorMoveBase moveBase
+                && !moveBase.KeepDesignation
+                && moveBase.DesignatedThings.Any()
+            )
             {
                 foreach (Thing thing in moveBase.DesignatedThings)
                 {
-                    moveBase.Map.designationManager.TryRemoveDesignationOn(thing, MoveBaseDefOf.MoveBase);
+                    moveBase.Map.designationManager.TryRemoveDesignationOn(
+                        thing,
+                        MoveBaseDefOf.MoveBase
+                    );
                 }
             }
         }
