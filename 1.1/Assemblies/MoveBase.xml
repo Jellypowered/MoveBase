@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MoveBase</name>
+    </assembly>
+    <members>
+        <member name="T:MoveBase.DesignatorMoveBase">
+            <summary>
+            Designator for Home Mover.
+            </summary>
+        </member>
+        <member name="P:MoveBase.DesignatorMoveBase.KeepDesignation">
+            <summary>
+            Gets or sets whether designation should be kept when the designator is deselected.
+            </summary>
+        </member>
+        <member name="P:MoveBase.DesignatorMoveBase.DesignatedThings">
+            <summary>
+            Gets or sets a list of designated things.
+            </summary>
+        </member>
+        <member name="P:MoveBase.DesignatorMoveBase.DraggableDimensions">
+            <summary>
+            Dimension used by desigator when drag.
+            </summary>
+        </member>
+        <member name="P:MoveBase.DesignatorMoveBase.Designation">
+            <summary>
+            Gets the def for this designation.
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.#ctor">
+            <summary>
+            Create instance of DesignatorMovebase.
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.ClearCache">
+            <summary>
+            Clear cache of roof to remove.
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.ExposeData">
+            <summary>
+            Save state.
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.Notify_Removing_Callback(Verse.Thing)">
+            <summary>
+            It should be invoked when a building is removed from designation.
+            </summary>
+            <param name="thing"> Building is being removed from designation. </param>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.AddBeingReinstalledBuilding(Verse.Building)">
+            <summary>
+            Add building to cache when a building is removed and being in transport/reinstallation by a pawn.
+            </summary>
+            <param name="building"> Building under transportation or reinstallation. </param>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.GetBuildingsBeingReinstalled(Verse.Building)">
+            <summary>
+            Get a list of building being reinstalled that are in the same designation group as <paramref name="building"/>.
+            </summary>
+            <param name="building"> Building in question. </param>
+            <returns> A list of buildings that are being reinstalled. </returns>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.RemoveBuildingFromCache(Verse.Building)">
+            <summary>
+            Remove building from cache.
+            </summary>
+            <param name="building"> Building in question. </param>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.Selected">
+            <summary>
+            This method is invoked if this selector is selected.
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.DoExtraGuiControls(System.Single,System.Single)">
+            <summary>
+            Rotation control. Code copied from vanilla.
+            </summary>
+            <param name="leftX"> X position on screen. </param>
+            <param name="bottomY"> Bottom Y position on screen. </param>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.SelectedUpdate">
+            <summary>
+            What should be drawn when the frame is being updated..
+            </summary>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.CanDesignateThing(Verse.Thing)">
+            <summary>
+            Check if <paramref name="t"/> can be designated by this designator.
+            </summary>
+            <param name="t"> Thing in question. </param>
+            <returns> Returns true is <paramref name="t"/> can be designated. </returns>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.CanDesignateCell(Verse.IntVec3)">
+            <summary>
+            This method is invoked when either a click or a drag from mouse is performed.
+            </summary>
+            <param name="loc"> cell on map. </param>
+            <returns> Data model for acceptance. </returns>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.SetNoRoofFalse(Verse.IntVec3)">
+            <summary>
+            Set no roof to false after roof is removed on <paramref name="cell"/>.
+            </summary>
+            <param name="cell"></param>
+            <remarks> When no-roof is true, pawn will try to remove roof on that cell. </remarks>
+        </member>
+        <member name="M:MoveBase.DesignatorMoveBase.FinalizeDesignationSucceeded">
+            <summary>
+            This method is invoked when at least one thing is selected by this selector.
+            </summary>
+        </member>
+        <member name="T:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch">
+            <summary>
+            Patch CanPlaceBlueprint so players can move buildings to positions where are occupied by other buildings that are also desiganted.
+            </summary>
+        </member>
+        <member name="F:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch._patternToMatch1">
+            <summary>
+            Match "identical thing exist" check.
+            </summary>
+        </member>
+        <member name="F:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch._patternToMatch2">
+            <summary>
+            Match "space already occupied" check.
+            </summary>
+        </member>
+        <member name="F:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch._patternToMatch3">
+            <summary>
+            Match "Interaction cell block" from check on designated thing.
+            </summary>
+        </member>
+        <member name="F:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch.Mode">
+            <summary>
+            Operation mode for <see cref="M:RimWorld.GenConstruct.CanPlaceBlueprintAt(Verse.BuildableDef,Verse.IntVec3,Verse.Rot4,Verse.Map,System.Boolean,Verse.Thing,Verse.Thing,Verse.ThingDef)"/>.
+            </summary>
+        </member>
+        <member name="M:MoveBase.GenConstruct_CanPlaceBlueprintAt_Patch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})">
+            <summary>
+            Add a check in the method body so it would return true if thing occupies the current cell is also designated.
+            </summary>
+            <param name="codeInstructions"></param>
+            <returns> Sequence of IL after patched. </returns>
+        </member>
+        <member name="T:MoveBase.BlueprintMode">
+            <summary>
+            Blueprint mode that controls how <see cref="M:RimWorld.GenConstruct.CanPlaceBlueprintAt(Verse.BuildableDef,Verse.IntVec3,Verse.Rot4,Verse.Map,System.Boolean,Verse.Thing,Verse.Thing,Verse.ThingDef)"/> is executed.
+            </summary>
+        </member>
+        <member name="F:MoveBase.BlueprintMode.Check">
+            <summary>
+            Mode for checking if blueprint can be placed at a cell.
+            </summary>
+        </member>
+        <member name="F:MoveBase.BlueprintMode.Place">
+            <summary>
+            Mode for placing down blueprint on a cell.
+            </summary>
+        </member>
+        <member name="T:MoveBase.MinifyUtility_MakeMinified">
+            <summary>
+            Fix door tick exception when a door is minified.
+            </summary>
+        </member>
+        <member name="T:MoveBase.RoofUtility">
+            <summary>
+            Utility for roof.
+            </summary>
+        </member>
+        <member name="M:MoveBase.RoofUtility.IsSupported(Verse.IntVec3,Verse.Map,System.Collections.Generic.IEnumerable{Verse.Thing})">
+            <summary>
+            Check if roof is supported by buildings other than those in <paramref name="exceptions"/>.
+            </summary>
+            <param name="roof"></param>
+            <param name="map"></param>
+            <param name="exceptions"></param>
+            <returns></returns>
+            <remarks>(141, 144) to (138, 138)</remarks>
+        </member>
+        <member name="M:MoveBase.ThingUtility.BlockAdjacentInteractionCell(Verse.Thing,Verse.IntVec3,Verse.Rot4)">
+            <summary>
+            Check if <paramref name="thing"/> blocks any interaction cell of others if placed at <paramref name="pos"/> with rotation <paramref name="rot"/>.
+            </summary>
+            <param name="thing"> Thing to place. </param>
+            <param name="pos"> Position at which <paramref name="thing"/> would be placed. </param>
+            <param name="rot"> Would be rotation of <paramref name="thing"/>. </param>
+            <returns> First Thing which interaction cell is blocked by <paramref name="thing"/>. </returns>
+        </member>
+        <member name="T:MoveBase.WorkGiver_ConstructDeliverResourcesToBlueprints_Patch">
+            <summary>
+            Patch the original so pawn won't start a reinstall job if the subject building is the only support for nearby roof.
+            </summary>
+        </member>
+        <member name="M:MoveBase.WorkGiver_ConstructDeliverResourcesToBlueprints_Patch.Postfix(Verse.Thing,System.Boolean,Verse.AI.Job@)">
+            <summary>
+            Postfix method.
+            </summary>
+            <param name="t"></param>
+            <param name="forced"></param>
+            <param name="__result"></param>
+        </member>
+    </members>
+</doc>
