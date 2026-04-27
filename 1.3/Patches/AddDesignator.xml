@@ -4,7 +4,7 @@
     <Operation Class="PatchOperationAdd">
         <xpath>/Defs/DesignationCategoryDef[defName="Orders"]/specialDesignatorClasses</xpath>
         <value>
-            <li>HomeMover.DesignatorHomeMover</li>
+            <li>MoveBase.DesignatorMoveBase</li>
         </value>
     </Operation>
 </Patch>
