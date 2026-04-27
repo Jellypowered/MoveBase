@@ -1,20 +1,13 @@
 using System.Linq;
-using System.Reflection;
 using HarmonyLib;
 using RimWorld;
 using Verse;
 
 namespace HomeMover
 {
-    [StaticConstructorOnStartup]
+    [HarmonyPatch(typeof(DesignatorManager), nameof(DesignatorManager.Deselect))]
     public static class Designator_Deselect_Patch
     {
-        static Designator_Deselect_Patch()
-        {
-            MethodInfo original = typeof(DesignatorManager).GetMethod("Deselect");
-            MethodInfo prefix = typeof(Designator_Deselect_Patch).GetMethod("Prefix");
-        }
-
         public static void Prefix(DesignatorManager __instance)
         {
             if (

@@ -18,6 +18,16 @@ namespace HomeMover
             BindingFlags.NonPublic | BindingFlags.Instance
         );
 
+        private static readonly MethodInfo _tickListFor = typeof(TickManager).GetMethod(
+            "TickListFor",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
+
+        private static readonly MethodInfo _bucketOf = typeof(TickList).GetMethod(
+            "BucketOf",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
+
         [HarmonyPatch(typeof(MinifyUtility), nameof(MinifyUtility.MakeMinified))]
         public static class MinifyUtility_MakeMinified_Patch
         {
@@ -27,19 +37,13 @@ namespace HomeMover
                     thing?.MapHeld?.designationManager?.DesignationOn(thing, HomeMoverDefOf.HomeMover)
                     != null;
 
+                // Mark for door-tick safety only; do NOT despawn here.
+                // Despawning before vanilla MakeMinified() runs nulls MapHeld and breaks
+                // InstallBlueprintUtility.CacheBlueprintsFor — orphaning the destination
+                // Blueprint_Install (causing pairwise blueprint disappearance).
                 if (__state && thing is Building building && building.Spawned)
                 {
                     MarkBeingMinified(building);
-
-                    // Remove from normal tick list
-                    TickList tickList = _tickListNormal?.GetValue(Find.TickManager) as TickList;
-                    tickList?.DeregisterThing(building);
-
-                    // Remove from all tick lists
-                    DeregisterFromAllTickLists(building);
-
-                    // Despawn early to prevent errors during vanilla flow
-                    building.DeSpawn(DestroyMode.Vanish);
                 }
 
                 return true; // Proceed to original method
@@ -55,8 +59,19 @@ namespace HomeMover
                 if (__state && __result != null)
                 {
                     ClearBeingMinified(thing);
-                    HomeMover_DelayedCleanup.Queue(thing);
-                    //MoveBaseMod.DebugLog($"Queued delayed tick cleanup for {thing}");
+
+                    // Mirror original mod's approach: scrub the inner thing from any tick bucket
+                    // it may have lingered in (door-tick NRE protection).
+                    try
+                    {
+                        TickList tickList = _tickListFor?.Invoke(Find.TickManager, new object[] { thing }) as TickList;
+                        if (tickList != null)
+                        {
+                            var bucket = _bucketOf?.Invoke(tickList, new object[] { thing }) as List<Thing>;
+                            bucket?.Remove(thing);
+                        }
+                    }
+                    catch { /* swallow — defensive cleanup only */ }
                 }
             }
         }

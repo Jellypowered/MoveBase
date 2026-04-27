@@ -11,6 +11,15 @@ namespace HomeMover
             new Dictionary<IntVec3, Building>();
 
         /// <summary>
+        /// Clear the roof-support cache. Must be called on game load and new game start
+        /// so stale <see cref="Building"/> references from the previous session are discarded.
+        /// </summary>
+        public static void ClearCache()
+        {
+            _supportedRoof.Clear();
+        }
+
+        /// <summary>
         /// Check if roof is supported by buildings other than those in <paramref name="exceptions"/>.
         /// </summary>
         public static bool IsSupported(this IntVec3 roof, Map map, IEnumerable<Thing> exceptions)

@@ -4,69 +4,35 @@ Issues identified during the April 2026 audit that were **not fixed** because th
 
 ---
 
-## 1. Six Harmony Patches Are Never Applied
+## ~~1. Six Harmony Patches Are Never Applied~~ ✅ Fixed (April 2026)
 
-**Severity:** High — these patches are silently not running at all.
+All six classes were converted to use `[HarmonyPatch]` attributes so `PatchAll()` in `HomeMover_Startup` picks them up automatically. The dead `[StaticConstructorOnStartup]` constructors and all empty `harmony.Patch()` stubs were removed.
 
-The following classes have `[StaticConstructorOnStartup]` and contain Postfix/Transpiler methods, but their static constructors never call `harmony.Patch()`. The methods exist but are never hooked into the game.
-
-| File | Intended target | Method type |
-|---|---|---|
-| `Blueprint_Destroy_Patch.cs` | `ThingWithComps.Destroy` + `Blueprint_Install.TryReplaceWithSolidThing` | Postfix |
-| `Designation_Notify_Removing_Patch.cs` | `Designation.Notify_Removing` | Postfix |
-| `Designator_Deselect_Patch.cs` | `DesignatorManager.Deselect` | Prefix |
-| `Designator_DesignateThing_Patch.cs` (class `Designator_Patch`) | `Designator_Cancel.DesignateThing` + `DesignateSingleCell` | Prefix |
-| `JobDriver_Uninstall_FinishedRemoving_Patch.cs` | `JobDriver_Uninstall.FinishedRemoving` | Postfix |
-| `GenConstruct_CanPlaceBlueprintAt_Patch.cs` | `GenConstruct.CanPlaceBlueprintAt` | Transpiler |
-
-### Most critical
-`GenConstruct_CanPlaceBlueprintAt_Patch` — without this transpiler, players **cannot** place a building on a tile occupied by another building that is also designated for moving. The whole "move building to occupied tile" use-case silently fails.
-
-### Fix
-Each class needs its static constructor to call `harmony.Patch()`, or be converted to use `[HarmonyPatch]` attributes (which `HarmonyUtility.MoveBase_Startup.PatchAll()` would then pick up automatically).
+Two multi-target files were split into separate patch classes:
+- `Blueprint_Destroy_Patch` → `Blueprint_Destroy_Patch` + `Blueprint_Install_TryReplace_Patch`
+- `Designator_Patch` → `Designator_CancelThing_Patch` + `Designator_CancelSingleCell_Patch`
 
 ---
 
-## 2. `RoofUtility._supportedRoof` Cache Is Never Cleared
+## ~~2. `RoofUtility._supportedRoof` Cache Is Never Cleared~~ ✅ Fixed (April 2026)
 
-**Severity:** Medium — stale results after map change or load.
+`RoofUtility.ClearCache()` was added and is now called from three `GameSaveComponent` lifecycle hooks:
+- `ExposeData()` on `LoadSaveMode.LoadingVars` — clears before reference resolution during a load
+- `LoadedGame()` — clears after a full game load (belt-and-suspenders)
+- `StartedNewGame()` — clears when starting a fresh colony
 
-**File:** `Source/RoofUtility.cs`
-
-`_supportedRoof` is a `static Dictionary<Building, bool>`. It accumulates entries from the current map session and is never cleared. After a game load or map change, the dictionary can hold `Building` references pointing to destroyed or unloaded objects. A stale `true` entry means "this building supports a roof" for a building that no longer exists, which could cause the mod to incorrectly block a reinstall job.
-
-### Fix
-Clear the dictionary in `GameSaveComponent.ExposeData()` when `Scribe.mode == LoadSaveMode.LoadingVars`, or hook `GameComponent.StartedNewGame` / `GameComponent.LoadedGame`.
+Inspired by **SmarterConstruction**'s pattern of using lifecycle hooks (rather than TTL expiry) to invalidate map-session caches.
 
 ---
 
-## 3. Two Different Harmony IDs Are Used
+## ~~3. Two Different Harmony IDs Are Used~~ ✅ Fixed (April 2026)
 
-**Severity:** Low — cosmetic / tooling only.
-
-`HarmonyUtility.MoveBase_Startup` creates `new Harmony("NotooShabby.MoveBase")`.  
-`RoofGrid_SetRoof_Patch` and `WorkGiver_ConstructDeliverResourcesToBlueprints_Patch` each create `new Harmony("com.movebase.harmony")`.
-
-Functionality is unaffected, but Harmony's patch-listing tools (e.g. `harmony.GetPatchedMethods()`) will only show patches belonging to the queried ID, making debugging harder.
-
-### Fix
-Pick one ID (recommend `"NotooShabby.MoveBase"` to match the author) and use it everywhere.
+All Harmony instances now use `"Jellypowered.HomeMover"` — updated in `HarmonyUtility.cs`, `RoofGrid_SetRoof_Patch.cs`, and `WorkGiver_ConstructDeliverResourcesToBlueprints_Patch.cs`.
 
 ---
 
-## 4. Plants Blocking Placement Are Never Designated for Cutting
+## ~~4. Plants Blocking Placement Are Never Designated for Cutting~~ ✅ Fixed (April 2026)
 
-**Severity:** Medium — causes permanent stuck state with no user feedback.
+`DesignatorHomeMover.PlaceWaitingBuildings` now has an `else` branch: when `CanPlaceBlueprintAt` returns rejected, `DesignatePlantsBlocking()` iterates the full building footprint (`GenAdj.OccupiedRect`) and adds `CutPlant` or `HarvestPlant` designations for any blocking plants (mirroring vanilla's `PlaceBlueprintForBuild` logic). Existing designations are not duplicated. Pawns with the Plants work type will then automatically clear the way, and the next `PlaceWaitingBuildings` tick will succeed.
 
-**Confirmed via:** In-game test (April 2026) — a tree in the target cell caused the mod to loop indefinitely.
-
-### What happens
-`PlaceWaitingBuildings` (called every ~6 ticks by `GameSaveComponent`) checks `GenConstruct.CanPlaceBlueprintAt` for each waiting building. When a plant is in the target cell, this returns rejected and the building stays in `WaitingThings` forever. Every pawn work evaluation also re-runs `WorkGiver_ConstructDeliverResourcesToBlueprints_Patch.Postfix`, producing continuous log spam.
-
-### Why vanilla doesn't have this problem
-For normal build blueprints, `GenConstruct.PlaceBlueprintForBuild` designates blocking plants for harvest/cut automatically as part of blueprint placement. The reinstall path (`PlaceBlueprintForReinstall`) does the same — but only once the mod successfully reaches that call. The mod's pre-check with `CanPlaceBlueprintAt` gates that call, so the designation never happens.
-
-### Fix
-In `PlaceWaitingBuildings`, when `CanPlaceBlueprintAt` returns rejected, inspect `deltaCell.GetThingList(map)` for `Plant` instances. For harvestable plants add `Designation_HarvestPlant`; for all others add `Designation_CutPlant`. This mirrors what vanilla does during normal blueprint placement and unblocks the stuck building automatically.
-
-Note: there is no existing code anywhere in the mod (registered or unregistered patches) that handles plant removal — this feature was never written.
+Inspired by **TDEnhance**'s `MakeWayForBlueprint` module, which uses the same `HarvestableNow` check to decide between harvest and cut designations.

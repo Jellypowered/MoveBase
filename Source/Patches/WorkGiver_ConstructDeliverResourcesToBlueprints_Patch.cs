@@ -61,10 +61,6 @@ namespace HomeMover
                 && building.def.holdsRoof
             )
             {
-                HomeMoverMod.DebugLog(
-                    $"Applying postfix for blueprint {install} and building {building}"
-                );
-
                 if (forced)
                 {
                     DesignatorHomeMover.AddBeingReinstalledBuilding(building);
@@ -78,8 +74,6 @@ namespace HomeMover
                     ) != null
                 )
                 {
-                    HomeMoverMod.DebugLog($"Building {building} has a MoveBase designation.");
-
                     bool canRemove = true;
                     HashSet<IntVec3> roofInRange = building.RoofInRange();
                     List<Building> buildingsBeingRemoved = DesignatorHomeMover
@@ -89,11 +83,8 @@ namespace HomeMover
 
                     foreach (IntVec3 roof in roofInRange)
                     {
-                        HomeMoverMod.DebugLog($"Checking roof at position {roof}.");
                         if (!roof.IsSupported(building.MapHeld, buildingsBeingRemoved))
                         {
-                            HomeMoverMod.DebugLog($"Roof at position {roof} is not supported.");
-
                             building.MapHeld.areaManager.NoRoof[roof] = true;
                             building.MapHeld.areaManager.BuildRoof[roof] = false;
                             DesignatorHomeMover.AddToRoofToRemove(roof, building);
@@ -103,14 +94,10 @@ namespace HomeMover
 
                     if (canRemove)
                     {
-                        HomeMoverMod.DebugLog($"Can remove building {building}.");
                         DesignatorHomeMover.AddBeingReinstalledBuilding(building);
                     }
                     else
                     {
-                        HomeMoverMod.DebugLog(
-                            $"Cannot remove building {building}. Job result set to null."
-                        );
                         __result = null;
                     }
                 }

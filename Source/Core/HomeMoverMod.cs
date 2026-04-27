@@ -36,7 +36,7 @@ namespace HomeMover
             Log.Message("[HomeMover] Mod initialized.");
         }
 
-        public override string SettingsCategory() => "Move Base";
+        public override string SettingsCategory() => UIText.Label.TranslateSimple();
 
         public override void DoSettingsWindowContents(UnityEngine.Rect inRect)
         {

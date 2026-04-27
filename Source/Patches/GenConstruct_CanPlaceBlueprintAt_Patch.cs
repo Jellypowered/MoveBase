@@ -11,7 +11,7 @@ namespace HomeMover
     /// <summary>
     /// Patch CanPlaceBlueprint so players can move buildings to positions where are occupied by other buildings that are also desiganted.
     /// </summary>
-    [StaticConstructorOnStartup]
+    [HarmonyPatch(typeof(GenConstruct), nameof(GenConstruct.CanPlaceBlueprintAt))]
     public static class GenConstruct_CanPlaceBlueprintAt_Patch
     {
         private static MethodInfo _thingInDesignation =
@@ -92,19 +92,10 @@ namespace HomeMover
         /// <summary>
         /// Operation mode for <see cref="GenConstruct.CanPlaceBlueprintAt(BuildableDef, IntVec3, Rot4, Map, bool, Thing, Thing, ThingDef)"/>.
         /// </summary>
+        /// <summary>
+        /// Operation mode for <see cref="GenConstruct.CanPlaceBlueprintAt(BuildableDef, IntVec3, Rot4, Map, bool, Thing, Thing, ThingDef)"/>.
+        /// </summary>
         public static BlueprintMode Mode = BlueprintMode.Check;
-
-        static GenConstruct_CanPlaceBlueprintAt_Patch()
-        {
-            MethodInfo original = typeof(GenConstruct).GetMethod(
-                nameof(GenConstruct.CanPlaceBlueprintAt),
-                BindingFlags.Static | BindingFlags.Public
-            );
-            MethodInfo transpiler = typeof(GenConstruct_CanPlaceBlueprintAt_Patch).GetMethod(
-                "Transpiler",
-                BindingFlags.Static | BindingFlags.Public
-            );
-        }
 
         /// <summary>
         /// Add a check in the method body so it would return true if thing occupies the current cell is also designated.
@@ -279,6 +270,12 @@ namespace HomeMover
 
         private static bool SameConduit(BuildableDef def, Map map, IntVec3 loc)
         {
+            // During active placement, skip all PlaceWorker checks (e.g. PlaceWorker_OnWall).
+            // Destination walls/supports are also being moved as blueprints — they don't exist yet
+            // but will be built first due to tier ordering.
+            if (Mode == BlueprintMode.Place)
+                return true;
+
             List<Thing> things = loc.GetThingList(map);
             if (things.Any(t => t.def == def && ThingInDesignation(t)))
                 return true;

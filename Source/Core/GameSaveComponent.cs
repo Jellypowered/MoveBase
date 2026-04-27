@@ -16,10 +16,25 @@ namespace HomeMover
             if (Scribe.mode == LoadSaveMode.LoadingVars)
             {
                 DesignatorHomeMover.ClearCache();
+                RoofUtility.ClearCache();
                 _lastUpdateTick = 0;
             }
 
             DesignatorHomeMover.ExposeData();
+        }
+
+        public override void StartedNewGame()
+        {
+            base.StartedNewGame();
+            DesignatorHomeMover.ClearCache();
+            RoofUtility.ClearCache();
+            _lastUpdateTick = 0;
+        }
+
+        public override void LoadedGame()
+        {
+            base.LoadedGame();
+            RoofUtility.ClearCache();
         }
 
         public override void GameComponentTick()

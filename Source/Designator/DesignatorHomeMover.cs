@@ -26,8 +26,10 @@ namespace HomeMover
         private static Rot4 _rotation = Rot4.North;
         private static bool _originFound = false;
         private static IntVec3 _origin = IntVec3.Zero;
+        private static HashSet<IntVec3> _selectedCells = new HashSet<IntVec3>();
         private static Dictionary<Thing, IntVec3> _ghostPos = new Dictionary<Thing, IntVec3>();
         private static Dictionary<IntVec3, TerrainDef> _floorPattern = new Dictionary<IntVec3, TerrainDef>();
+        private static HashSet<Thing> _nonMinifiableThings = new HashSet<Thing>();
         private static List<RemoveRoofModel> _removeRoofModels = new List<RemoveRoofModel>();
 
         private static Mode _mode = Mode.Select;
@@ -76,17 +78,22 @@ namespace HomeMover
             GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Place;
             foreach (RemoveRoofModel model in _removeRoofModels)
             {
-                foreach (Thing thing in model.WaitingThings.ToList())
+                HashSet<Thing> moveGroup = model.DesignatedThings?.ToHashSet() ?? new HashSet<Thing>();
+
+                foreach (Thing thingToProcess in model.WaitingThings.ToList())
                 {
-                    if (thing.DestroyedOrNull() || thing.MapHeld != model.Map)
+                    if (thingToProcess.DestroyedOrNull() || thingToProcess.MapHeld != model.Map)
                     {
-                        model.WaitingThings.Remove(thing);
+                        model.WaitingThings.Remove(thingToProcess);
                         continue;
                     }
 
-                    IntVec3 deltaCell = GetDeltaCell(thing, model.MousePos, model.GhostPosition);
+                    // Start with the thing as-is, but we may force-minify it
+                    Thing thingToPlace = thingToProcess;
 
-                    Thing inner = thing.GetInnerIfMinified();
+                    IntVec3 deltaCell = GetDeltaCell(thingToPlace, model.MousePos, model.GhostPosition);
+
+                    Thing inner = thingToPlace.GetInnerIfMinified();
                     if (
                         GenConstruct
                             .CanPlaceBlueprintAt(
@@ -99,12 +106,54 @@ namespace HomeMover
                             .Accepted
                     )
                     {
-                        // ?? Despawn it first
-                        if (thing.Spawned)
+                        // For non-minifiable buildings in the selection, force-minify them so they can be moved
+                        if (!(thingToPlace is MinifiedThing) && inner is Building building && !building.def.Minifiable)
                         {
-                            thing.DeSpawn(DestroyMode.Vanish);
+                            try
+                            {
+                                MinifiedThing forceMinified = MinifyUtility.MakeMinified(building);
+                                if (forceMinified != null)
+                                {
+                                    thingToPlace = forceMinified;
+                                    inner = forceMinified.GetInnerIfMinified();
+                                    HomeMoverMod.DebugLog($"Force-minified non-minifiable building: {building.LabelCap}");
+                                }
+                                else
+                                {
+                                    model.WaitingThings.Remove(thingToProcess);
+                                    if (HomeMoverMod.Setting.warnNonMinifiable)
+                                    {
+                                        Messages.Message(
+                                            UIText.ItemNotMinifiable.Translate(building.LabelCap),
+                                            building,
+                                            MessageTypeDefOf.CautionInput
+                                        );
+                                    }
+                                    continue;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                HomeMoverMod.DebugLog($"Failed to force-minify {building.LabelCap}: {ex.Message}");
+                                model.WaitingThings.Remove(thingToProcess);
+                                if (HomeMoverMod.Setting.warnNonMinifiable)
+                                {
+                                    Messages.Message(
+                                        UIText.ItemNotMinifiable.Translate(building.LabelCap),
+                                        building,
+                                        MessageTypeDefOf.CautionInput
+                                    );
+                                }
+                                continue;
+                            }
                         }
-                        if (thing is MinifiedThing minifiedThing)
+
+                        // ?? Despawn it first
+                        if (thingToPlace.Spawned)
+                        {
+                            thingToPlace.DeSpawn(DestroyMode.Vanish);
+                        }
+                        if (thingToPlace is MinifiedThing minifiedThing)
                             GenConstruct.PlaceBlueprintForInstall(
                                 minifiedThing,
                                 deltaCell,
@@ -114,14 +163,24 @@ namespace HomeMover
                             );
                         else
                             GenConstruct.PlaceBlueprintForReinstall(
-                                thing as Building,
+                                thingToPlace as Building,
                                 deltaCell,
-                                thing.MapHeld,
-                                thing.Rotate(model.Rotation),
+                                thingToPlace.MapHeld,
+                                thingToPlace.Rotate(model.Rotation),
                                 Faction.OfPlayer
                             );
 
-                        model.WaitingThings.Remove(thing);
+                        model.WaitingThings.Remove(thingToProcess);
+                    }
+                    else
+                    {
+                        ObstructionHandler.HandleObstructionsAt(
+                            inner,
+                            deltaCell,
+                            inner.Rotate(model.Rotation),
+                            inner.MapHeld,
+                            moveGroup
+                        );
                     }
                 }
             }
@@ -252,6 +311,17 @@ namespace HomeMover
         /// </summary>
         protected override void FinalizeDesignationSucceeded()
         {
+            IncludeConduitsFromSelectedCells();
+
+            if (SelectionHasThickRoof() && !HomeMoverMod.Setting.allowThickRoofMoves)
+            {
+                Messages.Message(UIText.ThickRoofBlocked.Translate(), MessageTypeDefOf.RejectInput);
+                this.KeepDesignation = false;
+                _mode = Mode.Select;
+                Find.DesignatorManager.Deselect();
+                return;
+            }
+
             _mode = Mode.Place;
         }
 
@@ -265,8 +335,10 @@ namespace HomeMover
             _origin = IntVec3.Zero;
             _rotation = Rot4.North;
             DesignatedThings.Clear();
+            _selectedCells = new HashSet<IntVec3>();
             _ghostPos = new Dictionary<Thing, IntVec3>();
             _floorPattern = new Dictionary<IntVec3, TerrainDef>();
+            _nonMinifiableThings = new HashSet<Thing>();
             this.KeepDesignation = false;
         }
 
@@ -319,6 +391,34 @@ namespace HomeMover
                     Text.Font = GameFont.Small;
                 }
             );
+
+            if (_mode == Mode.Place && DesignatedThings.Any())
+            {
+                Rect summaryRect = new Rect(leftX, bottomY - 220f, 380f, 120f);
+                Find.WindowStack.ImmediateWindow(
+                    RotationControlWindowId + 1,
+                    summaryRect,
+                    WindowLayer.GameUI,
+                    delegate
+                    {
+                        Widgets.DrawMenuSection(summaryRect.AtZero());
+                        Rect contentRect = summaryRect.AtZero().ContractedBy(8f);
+                        int nonMinifiableCount = _nonMinifiableThings.Count;
+                        var (obstructionCount, blockerSummary) = GetBlockerDetails(UI.MouseCell());
+                        string summary =
+                            UIText.OverlayItems.Translate(DesignatedThings.Count) + "\n"
+                            + UIText.OverlayNonMinifiable.Translate(nonMinifiableCount) + "\n"
+                            + UIText.OverlayObstructions.Translate(obstructionCount) + "\n"
+                            + (obstructionCount > 0 ? "Blockers: " + blockerSummary + "\n" : "")
+                            + (
+                                HomeMoverMod.Setting.allowThickRoofMoves
+                                    ? UIText.OverlayThickRoofOn.TranslateSimple()
+                                    : UIText.OverlayThickRoofOff.TranslateSimple()
+                            );
+                        Widgets.Label(contentRect, summary);
+                    }
+                );
+            }
         }
 
         /// <summary>
@@ -331,6 +431,11 @@ namespace HomeMover
                 return;
 
             this.DrawGhostMatrix();
+
+            if (_mode == Mode.Place && DesignatedThings.Any())
+            {
+                DrawBlockedCells(UI.MouseCell());
+            }
         }
 
         /// <summary>
@@ -347,9 +452,6 @@ namespace HomeMover
                     return false;
 
                 if (building.def.category != ThingCategory.Building)
-                    return false;
-
-                if (!building.def.Minifiable)
                     return false;
 
                 if (!DebugSettings.godMode && building.Faction != Faction.OfPlayer)
@@ -384,7 +486,15 @@ namespace HomeMover
         public override AcceptanceReport CanDesignateCell(IntVec3 loc)
         {
             if (_mode == Mode.Select)
+            {
+                // Always accept the cell during Select if we want to capture floor terrain too —
+                // floor-only cells (no building) must still be recorded for copyFloorTypes,
+                // and they must register in _selectedCells so QueueDestinationRoof has the full footprint.
+                if (HomeMoverMod.Setting.copyFloorTypes)
+                    return true;
+
                 return this.CanDesignateThing(this.TopReinstallableInCell(loc));
+            }
             else
                 return this.CanReinstallAllThings(loc);
         }
@@ -404,6 +514,17 @@ namespace HomeMover
 
                     DesignatedThings.AddRange(things);
                     things.ForEach(thing => DesignateThing(thing));
+                }
+
+                _selectedCells.Add(c);
+
+                // Establish origin from a floor-only cell if no building has been clicked yet.
+                // Floor recording uses _origin, so without this floor patterns from cells before
+                // the first building would all collapse to offset (0,0,0).
+                if (!_originFound && HomeMoverMod.Setting.copyFloorTypes)
+                {
+                    _originFound = true;
+                    _origin = c;
                 }
 
                 // Record floor terrain if enabled
@@ -432,37 +553,24 @@ namespace HomeMover
                 List<(Thing thing, string reason)> skippedItems = new List<(Thing, string)>();
 
                 IntVec3 mousePos = UI.MouseCell();
+                int floorsPlaced = 0;
+                bool floorsQueued = false;
 
-                // Smart dependency placement: separate items by dependency requirements
-                List<Thing> structuresFirst = new List<Thing>();
-                List<Thing> infrastructureSecond = new List<Thing>();
+                List<Thing> orderedThings = HomeMoverMod.Setting.smartDependencyPlacement
+                    ? DesignatedThings
+                        .OrderBy(t => t.GetPlacementTier())
+                        .ThenByDescending(t => t.def.altitudeLayer)
+                        .ToList()
+                    : DesignatedThings.ToList();
 
-                if (HomeMoverMod.Setting.smartDependencyPlacement)
+                foreach (Thing designatedThing in orderedThings)
                 {
-                    foreach (Thing thing in DesignatedThings)
+                    if (!floorsQueued && designatedThing.GetPlacementTier() != PlacementTier.Conduit)
                     {
-                        if (RequiresSupport(thing))
-                        {
-                            infrastructureSecond.Add(thing);
-                            HomeMoverMod.DebugLog($"Queueing {thing.LabelCap} for second pass (infrastructure/attachments)");
-                        }
-                        else
-                        {
-                            structuresFirst.Add(thing);
-                        }
+                        floorsPlaced += MoveFloors(mousePos);
+                        floorsQueued = true;
                     }
-                }
-                else
-                {
-                    // Old behavior: place everything in original order
-                    structuresFirst.AddRange(DesignatedThings);
-                }
 
-                HomeMoverMod.DebugLog($"Placement order: {structuresFirst.Count} structures first, then {infrastructureSecond.Count} infrastructure/attachments");
-
-                structuresFirst.AddRange(infrastructureSecond);
-                foreach (Thing designatedThing in structuresFirst)
-                {
                     IntVec3 drawCell = GetDeltaCell(designatedThing, mousePos, _ghostPos);
                     List<Thing> things = drawCell.GetThingList(designatedThing.MapHeld);
                     bool foundTwin = false;
@@ -548,6 +656,18 @@ namespace HomeMover
                     if (report.Accepted)
                     {
                         Building building = twin1 as Building;
+
+                        if (building == null)
+                        {
+                            skippedItems.Add((twin1, UIText.ItemNotMinifiable.Translate(twin1.LabelCap)));
+                            continue;
+                        }
+
+                        if (HomeMoverMod.Setting.queueDestinationRoof && building.def.holdsRoof)
+                        {
+                            QueueDestinationRoof(building, drawCell, building.MapHeld);
+                        }
+
                         blueprintWork[building] = GenConstruct.PlaceBlueprintForReinstall(
                             building,
                             drawCell,
@@ -578,56 +698,25 @@ namespace HomeMover
                     }
                 }
 
-                // Place floor blueprints if enabled and patterns were recorded
-                if (HomeMoverMod.Setting.copyFloorTypes && _floorPattern.Any())
+                if (!floorsQueued)
                 {
-                    int floorsPlaced = 0;
+                    floorsPlaced += MoveFloors(mousePos);
+                    floorsQueued = true;
+                }
 
-                    foreach (var kvp in _floorPattern)
-                    {
-                        IntVec3 floorPos = mousePos + kvp.Key;
-                        TerrainDef terrainToBuild = kvp.Value;
-
-                        if (!floorPos.InBounds(base.Map))
-                            continue;
-
-                        TerrainDef currentTerrain = floorPos.GetTerrain(base.Map);
-
-                        if (currentTerrain != terrainToBuild && terrainToBuild.blueprintDef != null)
-                        {
-                            bool hasBlueprint = floorPos.GetThingList(base.Map)
-                                .Any(t => t is Blueprint_Build);
-
-                            if (!hasBlueprint)
-                            {
-                                GenConstruct.PlaceBlueprintForBuild(
-                                    terrainToBuild,
-                                    floorPos,
-                                    base.Map,
-                                    Rot4.North,
-                                    Faction.OfPlayer,
-                                    null
-                                );
-                                floorsPlaced++;
-                                HomeMoverMod.DebugLog($"Placed floor blueprint: {terrainToBuild.defName} at {floorPos}");
-                            }
-                        }
-                    }
-
-                    if (floorsPlaced > 0)
-                    {
-                        Messages.Message(
-                            UIText.FloorsQueued.Translate(floorsPlaced),
-                            MessageTypeDefOf.TaskCompletion
-                        );
-                    }
+                if (floorsPlaced > 0)
+                {
+                    Messages.Message(
+                        UIText.FloorsQueued.Translate(floorsPlaced),
+                        MessageTypeDefOf.TaskCompletion
+                    );
                 }
 
                 // Show message for skipped items if any
                 if (skippedItems.Any() && HomeMoverMod.Setting.showSkippedItemsMessage)
                 {
                     string itemList = string.Join("\n", skippedItems.Select(x =>
-                        $"� {x.thing.LabelCap}: {x.reason}"
+                        $"- {x.thing.LabelCap}: {x.reason}"
                     ));
                     Messages.Message(
                         UIText.ItemsSkipped.Translate(itemList),
@@ -679,6 +768,9 @@ namespace HomeMover
             if (t.Faction != Faction.OfPlayer)
                 t.SetFaction(Faction.OfPlayer);
 
+            if (t is Building building && !building.def.Minifiable)
+                _nonMinifiableThings.Add(t);
+
             base.Map.designationManager.AddDesignation(new Designation(t, this.Designation));
             _ghostPos[t] = t.Position - _origin;
         }
@@ -725,6 +817,15 @@ namespace HomeMover
 
         public static void AddToRoofToRemove(IntVec3 roof, Thing thing)
         {
+            if (
+                HomeMoverMod.Setting.allowThickRoofMoves
+                && thing?.MapHeld != null
+                && roof.GetRoof(thing.MapHeld)?.isThickRoof == true
+            )
+            {
+                return;
+            }
+
             _removeRoofModels
                 .FirstOrDefault(model => model.BuildingsToReinstall.Contains(thing))
                 ?.RoofToRemove.Add(roof);
@@ -883,6 +984,10 @@ namespace HomeMover
 
         private AcceptanceReport CanReinstallAllThings(IntVec3 mousePos)
         {
+            // If obstruction handling is enabled, be lenient — let placement proceed and handle blockers during actual placement
+            if (HomeMoverMod.Setting.handleObstructions)
+                return AcceptanceReport.WasAccepted;
+
             AcceptanceReport result = AcceptanceReport.WasAccepted;
             GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Check;
             this.TraverseDesignateThings(
@@ -900,6 +1005,9 @@ namespace HomeMover
                     );
                     if (!report.Accepted)
                     {
+                        if (_nonMinifiableThings.Contains(thing))
+                            return false;
+
                         result = report;
                         return true;
                     }
@@ -913,6 +1021,9 @@ namespace HomeMover
 
         private AcceptanceReport CanReinstall(Thing thing, IntVec3 drawCell)
         {
+            if (_nonMinifiableThings.Contains(thing))
+                return AcceptanceReport.WasAccepted;
+
             GenConstruct_CanPlaceBlueprintAt_Patch.Mode = BlueprintMode.Check;
             AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(
                 thing.def,
@@ -935,57 +1046,243 @@ namespace HomeMover
                 return thing.Rotation;
         }
 
-        /// <summary>
-        /// Determines if a thing should be placed after primary structures.
-        /// Includes wall attachments and infrastructure like conduits.
-        /// </summary>
-        private static bool RequiresSupport(Thing thing)
+        private static void QueueDestinationRoof(Building sourceBuilding, IntVec3 destination, Map map)
         {
-            if (thing?.def?.building == null)
-                return false;
+            if (sourceBuilding?.MapHeld == null || map == null)
+                return;
 
-            // Check if it's explicitly marked as an attachment
-            if (thing.def.building.isAttachment)
-                return true;
+            // Translate the entire selection footprint by the move offset so we
+            // only mark BuildRoof for cells inside the moved region — never beyond it.
+            IntVec3 moveOffset = destination - sourceBuilding.Position;
 
-            // Check for conduits and hidden conduits (infrastructure - place after structures)
-            if (thing.def.designationCategory != null && thing.def.designationCategory.defName == "Power")
+            foreach (IntVec3 selectedCell in _selectedCells)
             {
-                if (thing.def.defName.ToLower().Contains("conduit") ||
-                    thing.def.label?.ToLower().Contains("conduit") == true ||
-                    thing.def.description?.ToLower().Contains("conduit") == true)
+                RoofDef sourceRoofDef = selectedCell.GetRoof(sourceBuilding.MapHeld);
+                if (sourceRoofDef == null)
+                    continue;
+
+                if (sourceRoofDef.isThickRoof && HomeMoverMod.Setting.allowThickRoofMoves)
+                    continue;
+
+                IntVec3 targetRoof = selectedCell + moveOffset;
+                if (!targetRoof.InBounds(map))
+                    continue;
+
+                map.areaManager.BuildRoof[targetRoof] = true;
+            }
+        }
+
+        private void IncludeConduitsFromSelectedCells()
+        {
+            if (!_selectedCells.Any())
+                return;
+
+            foreach (IntVec3 cell in _selectedCells)
+            {
+                foreach (Thing thing in cell.GetThingList(base.Map))
                 {
-                    HomeMoverMod.DebugLog($"{thing.LabelCap} identified as conduit - will place after structures");
-                    return true;
+                    if (
+                        thing is Building
+                        && thing.def.IsConduitLike()
+                        && !DesignatedThings.Contains(thing)
+                        && this.CanDesignateThing(thing).Accepted
+                    )
+                    {
+                        DesignatedThings.Add(thing);
+                        DesignateThing(thing);
+                    }
+                }
+            }
+        }
+
+        private bool SelectionHasThickRoof()
+        {
+            foreach (Thing thing in DesignatedThings)
+            {
+                if (!(thing is Building building) || !building.def.holdsRoof)
+                    continue;
+
+                foreach (IntVec3 cell in building.OccupiedRect())
+                {
+                    RoofDef roof = cell.GetRoof(base.Map);
+                    if (roof?.isThickRoof == true)
+                        return true;
                 }
             }
 
-            // Check PlaceWorkers for wall requirements
-            if (thing.def.PlaceWorkers != null)
+            return false;
+        }
+
+        private int MoveFloors(IntVec3 mousePos)
+        {
+            if (!HomeMoverMod.Setting.copyFloorTypes || !_floorPattern.Any())
+                return 0;
+
+            int floorsPlaced = 0;
+            Map map = base.Map;
+
+            foreach (var kvp in _floorPattern)
             {
-                foreach (var placeWorker in thing.def.PlaceWorkers)
+                IntVec3 offset = kvp.Key;
+                TerrainDef terrainToBuild = kvp.Value;
+
+                IntVec3 floorPos = mousePos + offset;
+
+                if (!floorPos.InBounds(map))
+                    continue;
+
+                if (terrainToBuild.blueprintDef == null)
+                    continue;
+
+                TerrainDef currentTerrain = floorPos.GetTerrain(map);
+                if (currentTerrain == terrainToBuild)
+                    continue;
+
+                // Skip if there's already a build blueprint here
+                bool hasBlueprint = floorPos.GetThingList(map).Any(t => t is Blueprint_Build);
+                if (hasBlueprint)
+                    continue;
+
+                // Use vanilla's own placement check — it correctly allows floors under beds/tables/etc.
+                AcceptanceReport report = GenConstruct.CanPlaceBlueprintAt(
+                    terrainToBuild,
+                    floorPos,
+                    Rot4.North,
+                    map
+                );
+
+                if (!report.Accepted)
                 {
-                    string workerName = placeWorker.GetType().Name;
-                    // Common wall-related PlaceWorker names
-                    if (workerName.Contains("Wall") ||
-                        workerName.Contains("Attach") ||
-                        workerName.Contains("OnWall") ||
-                        workerName == "PlaceWorker_WallLight" ||
-                        workerName == "PlaceWorker_Cooler" ||
-                        workerName == "PlaceWorker_Heater" ||
-                        workerName == "PlaceWorker_Vent" ||
-                        workerName == "PlaceWorker_Conduit")
+                    HomeMoverMod.DebugLog($"Skipping floor {terrainToBuild.defName} at {floorPos}: {report.Reason}");
+                    continue;
+                }
+
+                Blueprint_Build bp = GenConstruct.PlaceBlueprintForBuild(
+                    terrainToBuild,
+                    floorPos,
+                    map,
+                    Rot4.North,
+                    Faction.OfPlayer,
+                    GetDefaultStuffFor(terrainToBuild)
+                );
+
+                if (bp != null)
+                {
+                    floorsPlaced++;
+                    HomeMoverMod.DebugLog($"Placed floor blueprint {terrainToBuild.defName} at {floorPos}");
+                }
+            }
+
+            return floorsPlaced;
+        }
+
+        /// <summary>
+        /// Picks a default stuff ThingDef for a terrain that requires Stuff (e.g. CarpetRed → cloth).
+        /// Without this, PlaceBlueprintForBuild creates an invalid blueprint that's silently destroyed.
+        /// </summary>
+        private static ThingDef GetDefaultStuffFor(BuildableDef def)
+        {
+            if (def == null || !def.MadeFromStuff)
+                return null;
+
+            // Prefer the def's own default if available
+            ThingDef fallback = GenStuff.DefaultStuffFor(def);
+            if (fallback != null)
+                return fallback;
+
+            // Otherwise grab any allowed stuff
+            if (def.stuffCategories != null)
+            {
+                foreach (var cat in def.stuffCategories)
+                {
+                    var stuff = DefDatabase<ThingDef>.AllDefsListForReading
+                        .FirstOrDefault(t => t.IsStuff && t.stuffProps?.categories != null && t.stuffProps.categories.Contains(cat));
+                    if (stuff != null)
+                        return stuff;
+                }
+            }
+
+            return null;
+        }
+
+        private (int count, string summary) GetBlockerDetails(IntVec3 mousePos)
+        {
+            HashSet<int> blockerIds = new HashSet<int>();
+            Dictionary<string, int> blockerTypes = new Dictionary<string, int>();
+            HashSet<Thing> moveGroup = DesignatedThings.ToHashSet();
+
+            foreach (Thing thing in DesignatedThings)
+            {
+                Thing inner = thing.GetInnerIfMinified();
+                IntVec3 drawCell = GetDeltaCell(thing, mousePos, _ghostPos);
+
+                foreach (IntVec3 cell in GenAdj.OccupiedRect(drawCell, GetRotation(thing), inner.def.Size))
+                {
+                    foreach (Thing blocker in cell.GetThingList(base.Map))
                     {
-                        return true;
+                        if (blocker == null || blocker.DestroyedOrNull())
+                            continue;
+
+                        if (moveGroup.Contains(blocker))
+                            continue;
+
+                        if (!GenConstruct.BlocksConstruction(inner, blocker))
+                            continue;
+
+                        int id = blocker.thingIDNumber;
+                        if (blockerIds.Add(id))
+                        {
+                            string typeKey = "Other";
+                            if (blocker is Plant)
+                                typeKey = "Plant";
+                            else if (blocker.def.mineable)
+                                typeKey = "Rock";
+                            else if (blocker is Building)
+                                typeKey = "Building";
+
+                            if (!blockerTypes.ContainsKey(typeKey))
+                                blockerTypes[typeKey] = 0;
+                            blockerTypes[typeKey]++;
+                        }
                     }
                 }
             }
 
-            // Check if buildingDef has specific placement rules
-            if (thing.def.building.canPlaceOverWall)
-                return true;
+            string summary = string.Join(", ", blockerTypes.Select(kvp => $"{kvp.Key}({kvp.Value})"));
+            return (blockerIds.Count, summary);
+        }
 
-            return false;
+        private void DrawBlockedCells(IntVec3 mousePos)
+        {
+            HashSet<int> blockerIds = new HashSet<int>();
+            HashSet<Thing> moveGroup = DesignatedThings.ToHashSet();
+
+            foreach (Thing thing in DesignatedThings)
+            {
+                Thing inner = thing.GetInnerIfMinified();
+                IntVec3 drawCell = GetDeltaCell(thing, mousePos, _ghostPos);
+
+                foreach (IntVec3 cell in GenAdj.OccupiedRect(drawCell, GetRotation(thing), inner.def.Size))
+                {
+                    foreach (Thing blocker in cell.GetThingList(base.Map))
+                    {
+                        if (blocker == null || blocker.DestroyedOrNull())
+                            continue;
+
+                        if (moveGroup.Contains(blocker))
+                            continue;
+
+                        if (!GenConstruct.BlocksConstruction(inner, blocker))
+                            continue;
+
+                        int id = blocker.thingIDNumber;
+                        if (blockerIds.Add(id))
+                        {
+                            GenDraw.DrawFieldEdges(GenAdj.OccupiedRect(cell, Rot4.North, new IntVec2(1, 1)).ToList(), Color.red);
+                        }
+                    }
+                }
+            }
         }
 
         private void DrawGhostMatrix()
@@ -1135,7 +1432,16 @@ namespace HomeMover
         {
             RemoveRoofModel newModel = new RemoveRoofModel(
                 designatedThings,
-                designatedThings.OfType<Building>().Where(b => b.def.holdsRoof).ToHashSet(),
+                designatedThings
+                    .OfType<Building>()
+                    .Where(b => b.def.holdsRoof)
+                    .Where(
+                        b =>
+                            !HomeMoverMod.Setting.allowThickRoofMoves
+                            || !b.OccupiedRect()
+                                .Any(c => c.GetRoof(map)?.isThickRoof == true)
+                    )
+                    .ToHashSet(),
                 waitingThings,
                 new HashSet<IntVec3>(),
                 map,

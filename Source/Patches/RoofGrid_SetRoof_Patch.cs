@@ -49,7 +49,6 @@ namespace HomeMover
             if (def == null && Current.ProgramState == ProgramState.Playing)
             {
                 DesignatorHomeMover.SetNoRoofFalse(c);
-                HomeMoverMod.DebugLog($"Roof removed at {c}, SetNoRoofFalse called.");
             }
         }
     }

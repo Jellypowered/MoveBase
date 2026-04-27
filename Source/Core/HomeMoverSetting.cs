@@ -9,6 +9,11 @@ namespace HomeMover
         public bool showSkippedItemsMessage = true;
         public bool smartDependencyPlacement = true;
         public bool copyFloorTypes = true;
+        public bool handleObstructions = true;
+        public bool autoMinifyBlockers = true;
+        public bool warnNonMinifiable = true;
+        public bool queueDestinationRoof = true;
+        public bool allowThickRoofMoves = false;
 
         public override void ExposeData()
         {
@@ -17,6 +22,11 @@ namespace HomeMover
             Scribe_Values.Look(ref showSkippedItemsMessage, "showSkippedItemsMessage", true);
             Scribe_Values.Look(ref smartDependencyPlacement, "smartDependencyPlacement", true);
             Scribe_Values.Look(ref copyFloorTypes, "copyFloorTypes", true);
+            Scribe_Values.Look(ref handleObstructions, "handleObstructions", true);
+            Scribe_Values.Look(ref autoMinifyBlockers, "autoMinifyBlockers", true);
+            Scribe_Values.Look(ref warnNonMinifiable, "warnNonMinifiable", true);
+            Scribe_Values.Look(ref queueDestinationRoof, "queueDestinationRoof", true);
+            Scribe_Values.Look(ref allowThickRoofMoves, "allowThickRoofMoves", false);
         }
 
         public void DoSettingsWindowContents(UnityEngine.Rect inRect)
@@ -24,30 +34,58 @@ namespace HomeMover
             Listing_Standard listing = new Listing_Standard();
             listing.Begin(inRect);
             listing.CheckboxLabeled(
-                "Smart dependency placement (infrastructure placed after structures)",
+                UIText.SettingsSmartDependencyLabel.TranslateSimple(),
                 ref smartDependencyPlacement,
-                "When enabled, wall attachments and conduits are automatically placed AFTER structures. This prevents most placement errors."
+                UIText.SettingsSmartDependencyDesc.TranslateSimple()
             );
             listing.CheckboxLabeled(
-                "Skip items that can't be placed (instead of aborting entire move)",
+                UIText.SettingsSkipItemsLabel.TranslateSimple(),
                 ref skipItemsWithErrors,
-                "When enabled, items that have placement errors will be skipped. When disabled, the entire move will be cancelled if any item can't be placed."
+                UIText.SettingsSkipItemsDesc.TranslateSimple()
             );
             if (skipItemsWithErrors)
             {
                 listing.CheckboxLabeled(
-                    "Show message for skipped items",
+                    UIText.SettingsShowSkippedLabel.TranslateSimple(),
                     ref showSkippedItemsMessage,
-                    "Display a message listing items that were skipped due to errors."
+                    UIText.SettingsShowSkippedDesc.TranslateSimple()
                 );
             }
             listing.CheckboxLabeled(
-                "Copy floor types to destination",
+                UIText.SettingsCopyFloorsLabel.TranslateSimple(),
                 ref copyFloorTypes,
-                "When enabled, queues construction of floors at the destination to match the selected area."
+                UIText.SettingsCopyFloorsDesc.TranslateSimple()
             );
             listing.CheckboxLabeled(
-                "Enable debug logging (requires dev mode)",
+                UIText.SettingsHandleObstructionsLabel.TranslateSimple(),
+                ref handleObstructions,
+                UIText.SettingsHandleObstructionsDesc.TranslateSimple()
+            );
+            if (handleObstructions)
+            {
+                listing.CheckboxLabeled(
+                    UIText.SettingsAutoUninstallLabel.TranslateSimple(),
+                    ref autoMinifyBlockers,
+                    UIText.SettingsAutoUninstallDesc.TranslateSimple()
+                );
+                listing.CheckboxLabeled(
+                    UIText.SettingsWarnNonMinifiableLabel.TranslateSimple(),
+                    ref warnNonMinifiable,
+                    UIText.SettingsWarnNonMinifiableDesc.TranslateSimple()
+                );
+            }
+            listing.CheckboxLabeled(
+                UIText.SettingsQueueRoofLabel.TranslateSimple(),
+                ref queueDestinationRoof,
+                UIText.SettingsQueueRoofDesc.TranslateSimple()
+            );
+            listing.CheckboxLabeled(
+                UIText.SettingsAllowThickRoofLabel.TranslateSimple(),
+                ref allowThickRoofMoves,
+                UIText.SettingsAllowThickRoofDesc.TranslateSimple()
+            );
+            listing.CheckboxLabeled(
+                UIText.SettingsDebugLoggingLabel.TranslateSimple(),
                 ref enableDebugLogging
             );
             listing.End();

@@ -1,34 +1,12 @@
-using System.Reflection;
 using HarmonyLib;
 using RimWorld;
 using Verse;
 
 namespace HomeMover
 {
-    [StaticConstructorOnStartup]
+    [HarmonyPatch(typeof(ThingWithComps), nameof(ThingWithComps.Destroy))]
     public static class Blueprint_Destroy_Patch
     {
-        static Blueprint_Destroy_Patch()
-        {
-            MethodInfo original = typeof(ThingWithComps).GetMethod(
-                "Destroy",
-                BindingFlags.Public | BindingFlags.Instance
-            );
-            MethodInfo postfix = typeof(Blueprint_Destroy_Patch).GetMethod(
-                "Postfix",
-                BindingFlags.Static | BindingFlags.Public
-            );
-
-            MethodInfo originalTryReplaceWithSolidThing = typeof(Blueprint_Install).GetMethod(
-                "TryReplaceWithSolidThing",
-                BindingFlags.Public | BindingFlags.Instance
-            );
-            MethodInfo postfixTryReplaceWithSolidThing = typeof(Blueprint_Destroy_Patch).GetMethod(
-                "PostfixTryReplaceWithSolidThing",
-                BindingFlags.Static | BindingFlags.Public
-            );
-        }
-
         public static void Postfix(ThingWithComps __instance)
         {
             if (
@@ -43,8 +21,12 @@ namespace HomeMover
                 );
             }
         }
+    }
 
-        public static void PostfixTryReplaceWithSolidThing(Thing createdThing)
+    [HarmonyPatch(typeof(Blueprint_Install), nameof(Blueprint_Install.TryReplaceWithSolidThing))]
+    public static class Blueprint_Install_TryReplace_Patch
+    {
+        public static void Postfix(Thing createdThing)
         {
             if (
                 createdThing != null

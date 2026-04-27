@@ -6,10 +6,10 @@ using Verse.AI;
 
 namespace HomeMover
 {
-    [StaticConstructorOnStartup]
+    [HarmonyPatch(typeof(JobDriver_Uninstall), "FinishedRemoving")]
     public static class JobDriver_Uninstall_FinishedRemoving_Patch
     {
-        private static PropertyInfo _building = typeof(JobDriver_RemoveBuilding).GetProperty(
+        private static readonly PropertyInfo _building = typeof(JobDriver_RemoveBuilding).GetProperty(
             "Building",
             BindingFlags.NonPublic | BindingFlags.Instance
         );
