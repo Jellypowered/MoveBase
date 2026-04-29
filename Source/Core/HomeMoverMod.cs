@@ -33,7 +33,7 @@ namespace HomeMover
             readyToLog = true;
             FlushQueuedLogs();
 
-            Log.Message("[HomeMover] Mod initialized.");
+            Log.Message($"[HomeMover] {BuildVersion.Version} Mod initialized.");
         }
 
         public override string SettingsCategory() => UIText.Label.TranslateSimple();

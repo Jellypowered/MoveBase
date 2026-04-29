@@ -1093,6 +1093,36 @@ namespace HomeMover
                     }
                 }
             }
+
+            // Also pick up wall-mounted items (e.g. wall lamps) that are attached to
+            // buildings in the selection but may occupy an adjacent cell outside the
+            // dragged rectangle.  We identify them by isAttachment AND by their facing
+            // direction pointing back toward a selected cell.
+            foreach (IntVec3 cell in _selectedCells.ToList())
+            {
+                foreach (IntVec3 dir in GenAdj.CardinalDirections)
+                {
+                    IntVec3 adjCell = cell + dir;
+                    if (!adjCell.InBounds(base.Map))
+                        continue;
+
+                    foreach (Thing thing in adjCell.GetThingList(base.Map))
+                    {
+                        if (
+                            thing is Building attached
+                            && attached.def.building?.isAttachment == true
+                            && !DesignatedThings.Contains(attached)
+                            && CanDesignateThing(attached).Accepted
+                            && attached.Position + attached.Rotation.FacingCell == cell
+                        )
+                        {
+                            HomeMoverMod.DebugLog($"Auto-including wall-mounted item: {attached.LabelCap} at {attached.Position} (attached to wall at {cell})");
+                            DesignatedThings.Add(attached);
+                            DesignateThing(attached);
+                        }
+                    }
+                }
+            }
         }
 
         private bool SelectionHasThickRoof()
@@ -1170,6 +1200,27 @@ namespace HomeMover
                 {
                     floorsPlaced++;
                     HomeMoverMod.DebugLog($"Placed floor blueprint {terrainToBuild.defName} at {floorPos}");
+
+                    // Designate the source cell for removal — deconstruct to recover materials if
+                    // the terrain has a costList (RimWorld's RemoveFloor job returns a fraction of
+                    // those materials automatically), otherwise just strip.
+                    IntVec3 srcCell = _origin + offset;
+                    if (srcCell != floorPos && srcCell.InBounds(map))
+                    {
+                        TerrainDef srcTerrain = srcCell.GetTerrain(map);
+                        bool deconstructable = srcTerrain?.costList != null && srcTerrain.costList.Count > 0;
+                        if (srcTerrain == terrainToBuild
+                            && srcTerrain.layerable
+                            && map.designationManager.DesignationAt(srcCell, DesignationDefOf.RemoveFloor) == null)
+                        {
+                            map.designationManager.AddDesignation(
+                                new Designation(srcCell, DesignationDefOf.RemoveFloor)
+                            );
+                            HomeMoverMod.DebugLog(deconstructable
+                                ? $"Queued floor deconstruction (materials returned) at source {srcCell}"
+                                : $"Queued floor strip (no materials) at source {srcCell}");
+                        }
+                    }
                 }
             }
 
